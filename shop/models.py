@@ -4,7 +4,7 @@ from decimal import Decimal
 from PIL import Image
 from django.db import models
 from django.urls import reverse
-from django.core.files.images import ImageFile
+from django.core.files.images import ImageFile, File
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
@@ -12,7 +12,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 
 
 USER = get_user_model()
-IMG_SIZE = (400, 400)   # minimal image sizes in pixels
+IMG_SIZE = (600, 600)   # minimal image sizes in pixels
 FILE_SIZE = (10, 'MB')   # maximal file size 'MB' or 'KB' only
 
 
@@ -21,14 +21,21 @@ def file_directory_path():
 
 
 def handle_image(obj):
-    file = getattr(obj, '_file', None)
-    if file is not None:
-        new_file = ImageFile(BytesIO(), obj.name)
-        with Image.open(obj) as img:
-            img.thumbnail(IMG_SIZE)
-            img.save(new_file, img.format)
-        setattr(obj, 'file', new_file)
-        file.close()
+    if getattr(obj, '_committed', True) or not obj.name:
+        return
+    try:
+        with obj.open(), Image.open(obj) as img:
+            # img.thumbnail(IMG_SIZE)
+            new_img = img.resize(IMG_SIZE, reducing_gap=3.0)
+            file = getattr(obj, '_file')
+            name = obj.name if not isinstance(file, File) else (
+                str(obj.name).rpartition('/')[2])
+            new_file = ImageFile(BytesIO(), name)
+            new_img.save(new_file, img.format)
+    except OSError:
+        return
+    setattr(obj, 'file', new_file)
+    setattr(obj, 'name', name)
 
 
 class Category(models.Model):
@@ -105,7 +112,7 @@ class Product(models.Model):
         return f'{self.category} {self.name} {self.marking}'
 
     def save(self, *args, **kwargs):
-        handle_image(self.image)
+        handle_image(getattr(self, 'image'))
         super().save(*args, **kwargs)
 
     def get_ct_id(self):
@@ -166,7 +173,7 @@ class Specification(models.Model):
         return f'{self.content_object}, {self.tag}'
 
     def save(self, *args, **kwargs):
-        handle_image(self.image)
+        handle_image(getattr(self, 'image'))
         self.discount_price = self.price - (
                 self.price * self.discount / 100
         ).quantize(self.price)

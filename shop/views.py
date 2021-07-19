@@ -9,6 +9,7 @@ from django.db.models import (Prefetch, F, Min, Max, Avg,
                               Subquery, Count, OuterRef, Exists)
 
 from .models import Category, Specification, Rate, Cart
+from .forms import CartForm
 
 
 def layout_view(request):
@@ -165,6 +166,7 @@ class SpecificationDetail(SingleObjectMixin, ShopView):
         self.object = self.get_object()
         context = super().get_context_data(**kwargs)
         context['spec_template_name'] = self.template_name
+        context['form'] = CartForm()
         return context
 
     def get_template_names(self):

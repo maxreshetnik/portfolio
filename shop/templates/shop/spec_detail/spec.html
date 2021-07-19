@@ -43,7 +43,9 @@
 <div class="card border-0 my-5">
     <div class="row gx-4 gx-lg-5 align-items-top">
         <div class="col-lg-6">
-            <img class="card-img-top rounded" src="{{ spec.image.url|default_if_none:spec.product.image.url }}" alt="..." />
+            <img class="card-img-top rounded"
+                 src="{% if spec.image is not None %}{{ spec.image.url }}{% else %}{{ spec.product.image.url }}{% endif %}"
+                 alt="..." />
         </div>
         <div class="col-lg-6">
             <div class="card-body pt-0">
@@ -93,12 +95,17 @@
                 {% endif %}
             </div>
             <div class="card-footer p-3 pt-0 border-top-0 bg-transparent position-absolute bottom-0">
-                <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">Add to cart</a></div>
+                <form class="d-flex">
+                    {{ form }}
+                    <button class="btn btn-outline-dark" type="submit">
+                        <i class="bi-cart me-1"></i>
+                        Add
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
-<!-- Call to Action-->
 <div class="card my-5 py-1 border-0 text-center">
     <div class="card-body bg-light">
         <h6 class="card-title text-white bg-secondary py-2 mb-3">More details:</h6>

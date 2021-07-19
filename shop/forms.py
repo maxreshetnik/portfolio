@@ -35,4 +35,18 @@ class SpecificationForm(ModelForm):
     def clean_image(self):
         file = self.cleaned_data['image']
         no_change = isinstance(file, ImageFieldFile)
-        return file if no_change else check_image_size(file)
+        return file if no_change or file is None else check_image_size(file)
+
+
+class CartForm(ModelForm):
+
+    class Meta:
+        model = models.Cart
+        fields = ['quantity']
+
+
+class SpecCustomersForm(ModelForm):
+
+    class Meta:
+        model = models.Specification
+        fields = ['customers']
