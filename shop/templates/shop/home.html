@@ -2,80 +2,12 @@
 
 {% block title %}<title>Shop Homepage</title>{% endblock %}
 
-{% block navbar %}{% include navbar_template_name %}{% endblock %}
 
 <!-- Section -->
+{% block breadcrumbs %}<div class="py-2 py-lg-3 w-100"></div>{% endblock %}
+
 {% block content %}
-<div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
-{% for spec in spec_list %}
-{% ifchanged spec.product.category.category_id %}
-    {% url 'shop:category' spec.product.category.category.name|lower as category_url %}
-{% endifchanged %}
-    <div class="col mb-5">
-        <div class="card h-100">
-            <a class="card-link link-dark text-decoration-none"
-               href="{{ category_url }}{{ spec.product.category.name|lower }}/{{ spec.id }}/">
-                <!-- Product image-->
-                <img class="card-img-top"
-                     src="{% if spec.image %}{{ spec.image.url }}{% else %}{{ spec.product.image.url }}{% endif %}"
-                     alt="..." />
-                <!-- Product details-->
-                <div class="card-body p-3">
-                    <div class="text-center">
-                        <!-- Product name-->
-                        <h6 class="text-center small fw-bold">
-                            {{ spec.product.category.name }} {{ spec.product.name }}
-                            {{ spec.product.marking }} {{ spec.tag }}<br/>
-                            {% if spec.pre_packing != 1 %}
-                            <span class="text-center">pre-packing
-                                {{ spec.pre_packing|floatformat }}{{ spec.product.get_unit_display }}
-                            </span>
-                            {% endif %}
-                        </h6>
-                        <!-- Product reviews -->
-                        <div class="text-center small">
-                            {% if spec.rating is None %}
-                            <div class="d-flex justify-content-center small mb-2">
-                                <div class="bi-star"></div>
-                                <div class="bi-star"></div>
-                                <div class="bi-star"></div>
-                                <div class="bi-star"></div>
-                                <div class="bi-star"></div>
-                            </div>
-                            {% else %}
-                            <div class="d-flex justify-content-center small text-warning mb-2">
-                            {% for star, half in rating_scale %}
-                                {% if spec.rating > star %}
-                                <div class="bi-star-fill"></div>
-                                {% elif spec.rating > half %}
-                                <div class="bi-star-half"></div>
-                                {% else %}
-                                <div class="bi-star"></div>
-                                {% endif %}
-                            {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        <!-- Product price and sale badge-->
-                        {% if spec.sale_price %}
-                        <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Special price</div>
-                        ${{ spec.sale_price }}
-                        {% elif spec.discount %}
-                        <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">-{{ spec.discount }}%</div>
-                        <span class="text-muted text-decoration-line-through">${{ spec.price }}</span>
-                        ${{ spec.discount_price }}
-                        {% else %}
-                        ${{ spec.price }}
-                        {% endif %}
-                    </div>
-                </div>
-            </a>
-            <!-- Product actions-->
-            <div class="card-footer p-3 pt-0 border-top-0 bg-transparent">
-                <div class="text-center"><a class="btn btn-outline-dark btn-sm mt-auto" href="#">Add to cart</a></div>
-            </div>
-        </div>
-    </div>
-{% endfor %}
-</div>
+
+{% include "shop/includes/section_home.html" %}
+
 {% endblock content %}

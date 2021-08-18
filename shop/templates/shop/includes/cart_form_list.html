@@ -1,0 +1,33 @@
+
+<input type="hidden" id="{{ spec.id }}" name="{{ form.specification.name }}"
+               value="{{ spec.id }}" class="visually-hidden" required>
+<label for="{{ spec.id }}_quantity" class="visually-hidden">Quantity</label>
+<div class="row gx-3 align-items-center position-relative">
+    <div class="col-auto ms-4 bg-danger small rounded position-absolute bottom-100" id="{{ spec.id }}_errors">
+        <div class="text-white lh-sm small">{{ non_field_errors }} {{ quantity_errors }}</div>
+    </div>
+    <div class="w-100"></div>
+    <div class="col btn-group btn-group-{{ size }} align-items-center px-0 me-1 me-lg-2" role="group" aria-label="Quantity input with buttons">
+        <button class="btn btn-outline-{{ btn_color|default:'primary' }} border-0 p-0 rounded-circle"
+                type="{{ btn_type|default:'button' }}" onclick="document.getElementById('{{ spec.id }}_quantity').stepDown();">
+            <i class="bi-dash-circle-fill p-1"></i>
+        </button>
+        <div class="input-group input-group-{{ size }} px-1 my-1 border rounded {{ is_invalid }}">
+            <input type="number" class="form-control border-0 px-1 {{ is_invalid }}"
+                   id="{{ spec.id }}_quantity" name="{{ form.quantity.name }}"
+                   value="{{ qty }}" step="{{ step }}" min="{{ min_qty }}" aria-describedby="{{ spec.id }}_errors" required>
+            <span class="input-group-text text-secondary ps-0 pe-1 bg-transparent border-0">{{ spec.product.unit|lower }}</span>
+        </div>
+        <button class="btn btn-outline-{{ btn_color|default:'primary' }} border-0 p-0 rounded-circle"
+                type="{{ btn_type|default:'button' }}" onclick="document.getElementById('{{ spec.id }}_quantity').stepUp();">
+            <i class="bi-plus-circle-fill p-1"></i>
+        </button>
+    </div>
+    {% block available_qty %}{% endblock available_qty %}
+    {% block btn_sub %}
+    <button class="col-auto btn btn-{{ btn_color|default:'primary' }} btn-{{ size }} px-1 {% if is_auth %}"
+            type="submit">{% else %}" type="button" data-bs-toggle="modal" data-bs-target="#loginModal">{% endif %}
+        {{ btn_icon|safe }}{% block btn_text %}{% endblock %}
+    </button>
+    {% endblock btn_sub %}
+</div>

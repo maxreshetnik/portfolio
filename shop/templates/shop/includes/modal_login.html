@@ -1,0 +1,40 @@
+<div class="modal" id="loginModal" aria-hidden="true" aria-labelledby="loginLabel" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content mx-3 mx-sm-4">
+            <div class="modal-header pb-0">
+                <div class="container-fluid">
+                    <button class="btn-close d-block mb-3" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="row text-center align-items-end justify-content-center">
+                        <a class="col-auto fs-4 text-decoration-none ms-1 border-bottom border-primary border-3 active" href="#" aria-current="true" role="button">Login</a>
+                        <a class="col-auto fs-4 text-decoration-none text-dark ms-2" role="button" data-bs-toggle="modal"  href="#signUpModal" data-bs-dismiss="modal">Sign-up</a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body text-center pb-0">
+                <div class="container-fluid py-3">
+                    {% include "shop/includes/login.html" with form=form_login csrf_token=csrf_token next=next only %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal" id="signUpModal" aria-hidden="true" aria-labelledby="signUpLabel" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content mx-3 mx-sm-4">
+            <div class="modal-header pb-0">
+                <div class="container-fluid">
+                    <button class="btn-close d-block mb-3" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="row text-center align-items-end justify-content-center">
+                        <a class="col-auto fs-4 text-decoration-none text-dark ms-1" role="button" data-bs-toggle="modal" href="#loginModal" data-bs-dismiss="modal">Login</a>
+                        <a class="col-auto fs-4 text-decoration-none text-warning ms-2 border-bottom border-warning border-3 active" href="#" aria-current="true" role="button">Sign-up</a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body text-center pb-4">
+                <div class="container-fluid py-3">
+                    {% include "shop/includes/sign_up.html" with form=form_sign_up csrf_token=csrf_token next=next only %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

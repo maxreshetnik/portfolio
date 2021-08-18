@@ -2,12 +2,12 @@
 
 {% load static %}
 
-<html lang="en">
+<html lang="en" class="h-100">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
-        <meta name="author" content="" />
+        <meta name="author" content="Max Reshetnik" />
         {% block title %}
         <title>Shop Homepage</title>
         {% endblock %}
@@ -16,92 +16,131 @@
         <!-- Bootstrap icons-->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
         <!-- Bootstrap theme CSS
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
          -->
         <!-- Core theme CSS (includes Bootstrap)-->
         <link href="{% static 'shop/style.css' %}" rel="stylesheet" type="text/css"/>
     </head>
-    <body>
+    <body class="d-flex flex-column h-100">
+        <!-- Header -->
         {% block header %}
-        <!-- Header
-        <header class="bg-light py-3">
-            <div class="container px-4 px-lg-5 my-3">
-                <div class="text-center text-white small">
-                    <h1 class="display-6 fw-bolder">Max Reshetnik</h1>
-                    <p class="lead fw-normal text-white-50 mb-0">
-                        This is my training online store project,
-                        the backend was written in Python using the Django framework,
-                        the business logic of the project was invented by the author
-                        for personal practice with the framework tools,
-                        in a real project a different approach is possible,
-                        the visual design is based on the
-                        <a href="https://startbootstrap.com/template/shop-homepage" class="text-decoration-none">Bootstrap template</a>.
-                    </p>
+        <header class="py-2 bg-light">
+            <div class="container px-4 px-lg-5">
+                <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+                    <div class="d-flex col-6 col-lg-auto me-lg-auto">
+                        <a href="/" class="navbar-brand me-4 text-dark">Portfolio</a>
+                        <a href="#" class="nav-link link-secondary text-center me-4"><i class="bi-github me-1"></i>GitHub</a>
+                    </div>
+                    <div class="col-6 col-lg-auto me-lg-auto">
+                        <div class="text-start">
+                            <!-- <svg class="bi me-2" width="32" height="32" role="img" aria-label="Telegram"></svg> -->
+                            <i class="bi-telegram me-2"></i><i class="bi-whatsapp me-2"></i>999-00-00
+                        </div>
+                        <div class="text-start"><i class="bi-envelope-fill me-2"></i>info@example.com</div>
+                    </div>
+
+                    <div class="d-flex col-12 col-lg-5 mb-2 mb-lg-0 align-items-center justify-content-end">
+                        <form class="me-3">
+                            <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+                        </form>
+                    {% if view.request.user.is_authenticated %}
+                        {% block cart %}
+                        <a href="{% url 'shop:cart' %}" class="btn btn-sm btn-light border-0 px-1 py-0 me-4 position-relative">
+                            {% if cart %}
+                            <i class="fs-5 bi-cart-fill bi-lg"></i>
+                            <span class="badge bg-warning text-dark rounded-circle mt-1 position-absolute top-0 start-100 translate-middle">
+                                {% block cart_num %}
+                                {{ cart|length }}
+                                {% endblock cart_num %}
+                            </span>
+                            {% else %}
+                            <i class="fs-5 bi-cart bi-lg"></i>
+                            <span class="badge bg-secondary rounded-circle mt-1 position-absolute top-0 start-100 translate-middle">0</span>
+                            {% endif %}
+                            <span class="visually-hidden">items in cart</span>
+                        </a>
+                        {% endblock cart %}
+                        {% block account %}
+                        <div class="dropdown text-end">
+                            <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle px-1 pt-1" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fs-4 bi-person-fill me-1"></i>Account
+                            </a>
+                            <ul class="dropdown-menu text-small" aria-labelledby="dropdownUser1">
+                                <li><a class="dropdown-item" href="{% url 'shop:profile' %}">Profile</a></li>
+                                <li><a class="dropdown-item" href="#">Orders</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'shop:logout' %}?next={% url 'shop:home' %}">Sign out</a></li>
+                            </ul>
+                        </div>
+                        {% endblock account %}
+                    {% else %}
+                        {% block login %}
+                        {% include "shop/includes/modal_login.html" with next=view.request.path_info %}
+                        <a class="btn btn-outline-dark me-2" data-bs-toggle="modal" href="#loginModal" role="button">Login</a>
+                        <a class="btn btn-warning flex-shrink-0" data-bs-toggle="modal"  href="#signUpModal" role="button">Sign-up</a>
+                        {% endblock login %}
+                    {% endif %}
+                    </div>
                 </div>
             </div>
-        </header> -->
+        </header>
         {% endblock header %}
         <!-- Navigation-->
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <nav class="navbar navbar-expand-lg py-1 navbar-dark bg-dark">
             <div class="container px-4 px-lg-5">
-                <a class="navbar-brand" href="#!">Portfolio</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 {% block navbar %}
                     {% block categories %}
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
-                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="#!">Home</a></li>
+                        {% url 'shop:home' as home_url %}
+                        <li class="nav-item me-3">
+                            <a class="nav-link{% if home_url == view.request.path_info %} active{% endif %}"
+                               aria-current="page" href="{{ home_url }}">Home
+                            </a>
+                        </li>
+                        {% for category in catalog %}
+                        {% url 'shop:category' category.name|lower as category_url %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Shop</a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="#!">All Products</a></li>
+                            <a class="nav-link{% if category == view.kwargs.category %} active{% endif %} dropdown-toggle"
+                               aria-current="page" id="{{ category.name }}" href="{{ category_url }}" role="button"
+                               data-bs-toggle="dropdown" aria-expanded="false">{{ category.name }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="{{ category.name }}">
+                                <li><a class="dropdown-item{% if category_url == view.request.path_info %} active{% endif %}" href="{{ category_url }}">All Products</a></li>
                                 <li><hr class="dropdown-divider" /></li>
-                                <li><a class="dropdown-item" href="#!">Popular Items</a></li>
-                                <li><a class="dropdown-item" href="#!">New Arrivals</a></li>
+                                <li><a class="dropdown-item" href="{{ category_url|add:'new/' }}">New Arrivals</a></li>
+                                <li><a class="dropdown-item" href="{{ category_url }}popular/">Popular Items</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                {% for subcategory in category.subcategories %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ category_url }}{{ subcategory.name|lower }}/">
+                                        {{ subcategory.name }}
+                                    </a>
+                                </li>
+                                {% endfor %}
                             </ul>
                         </li>
+                        {% endfor %}
                     </ul>
                     {% endblock categories %}
-                    {% block cart %}
-                    <form class="d-flex">
-                        <button class="btn btn-outline-dark" type="submit">
-                            <i class="bi-cart-fill me-1"></i>
-                            Cart
-                            <span class="badge bg-dark text-white ms-1 rounded-pill">0</span>
-                        </button>
-                    </form>
-                    {% endblock %}
                 {% endblock navbar %}
                 </div>
             </div>
         </nav>
         <!-- Section-->
-        <section class="py-5">
-            {% block breadcrumbs %}{% endblock %}
+        <section class="flex-shrink-0 py-4">
+            <nav class="container px-4 px-lg-5" aria-label="breadcrumb">
+                {% block breadcrumbs %}{% endblock %}
+            </nav>
             <div class="container px-4 px-lg-5 mt-5">
             {% block content %}
                 <div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
                     <div class="col mb-5">
                         <div class="card h-100">
-                            <!-- Product image-->
-                            <img class="card-img-top" src="https://dummyimage.com/450x300/dee2e6/6c757d.jpg" alt="..." />
-                            <!-- Product details-->
-                            <div class="card-body p-4">
-                                <div class="text-center">
-                                    <!-- Product name-->
-                                    <h5 class="fw-bolder">Fancy Product</h5>
-                                    <!-- Product price-->
-                                    $40.00 - $80.00
-                                </div>
-                            </div>
-                            <!-- Product actions-->
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">View options</a></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col mb-5">
-                        <div class="card h-100">
                             <!-- Sale badge-->
                             <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
                             <!-- Product image-->
@@ -122,153 +161,6 @@
                                     <!-- Product price-->
                                     <span class="text-muted text-decoration-line-through">$20.00</span>
                                     $18.00
-                                </div>
-                            </div>
-                            <!-- Product actions-->
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">Add to cart</a></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col mb-5">
-                        <div class="card h-100">
-                            <!-- Sale badge-->
-                            <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
-                            <!-- Product image-->
-                            <img class="card-img-top" src="https://dummyimage.com/450x300/dee2e6/6c757d.jpg" alt="..." />
-                            <!-- Product details-->
-                            <div class="card-body p-4">
-                                <div class="text-center">
-                                    <!-- Product name-->
-                                    <h5 class="fw-bolder">Sale Item</h5>
-                                    <!-- Product price-->
-                                    <span class="text-muted text-decoration-line-through">$50.00</span>
-                                    $25.00
-                                </div>
-                            </div>
-                            <!-- Product actions-->
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">Add to cart</a></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col mb-5">
-                        <div class="card h-100">
-                            <!-- Product image-->
-                            <img class="card-img-top" src="https://dummyimage.com/450x300/dee2e6/6c757d.jpg" alt="..." />
-                            <!-- Product details-->
-                            <div class="card-body p-4">
-                                <div class="text-center">
-                                    <!-- Product name-->
-                                    <h5 class="fw-bolder">Popular Item</h5>
-                                    <!-- Product reviews-->
-                                    <div class="d-flex justify-content-center small text-warning mb-2">
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                    </div>
-                                    <!-- Product price-->
-                                    $40.00
-                                </div>
-                            </div>
-                            <!-- Product actions-->
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">Add to cart</a></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col mb-5">
-                        <div class="card h-100">
-                            <!-- Sale badge-->
-                            <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
-                            <!-- Product image-->
-                            <img class="card-img-top" src="https://dummyimage.com/450x300/dee2e6/6c757d.jpg" alt="..." />
-                            <!-- Product details-->
-                            <div class="card-body p-4">
-                                <div class="text-center">
-                                    <!-- Product name-->
-                                    <h5 class="fw-bolder">Sale Item</h5>
-                                    <!-- Product price-->
-                                    <span class="text-muted text-decoration-line-through">$50.00</span>
-                                    $25.00
-                                </div>
-                            </div>
-                            <!-- Product actions-->
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">Add to cart</a></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col mb-5">
-                        <div class="card h-100">
-                            <!-- Product image-->
-                            <img class="card-img-top" src="https://dummyimage.com/450x300/dee2e6/6c757d.jpg" alt="..." />
-                            <!-- Product details-->
-                            <div class="card-body p-4">
-                                <div class="text-center">
-                                    <!-- Product name-->
-                                    <h5 class="fw-bolder">Fancy Product</h5>
-                                    <!-- Product price-->
-                                    $120.00 - $280.00
-                                </div>
-                            </div>
-                            <!-- Product actions-->
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">View options</a></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col mb-5">
-                        <div class="card h-100">
-                            <!-- Sale badge-->
-                            <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Sale</div>
-                            <!-- Product image-->
-                            <img class="card-img-top" src="https://dummyimage.com/450x300/dee2e6/6c757d.jpg" alt="..." />
-                            <!-- Product details-->
-                            <div class="card-body p-4">
-                                <div class="text-center">
-                                    <!-- Product name-->
-                                    <h5 class="fw-bolder">Special Item</h5>
-                                    <!-- Product reviews-->
-                                    <div class="d-flex justify-content-center small text-warning mb-2">
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                    </div>
-                                    <!-- Product price-->
-                                    <span class="text-muted text-decoration-line-through">$20.00</span>
-                                    $18.00
-                                </div>
-                            </div>
-                            <!-- Product actions-->
-                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                                <div class="text-center"><a class="btn btn-outline-dark mt-auto" href="#">Add to cart</a></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col mb-5">
-                        <div class="card h-100">
-                            <!-- Product image-->
-                            <img class="card-img-top" src="https://dummyimage.com/450x300/dee2e6/6c757d.jpg" alt="..." />
-                            <!-- Product details-->
-                            <div class="card-body p-4">
-                                <div class="text-center">
-                                    <!-- Product name-->
-                                    <h5 class="fw-bolder">Popular Item</h5>
-                                    <!-- Product reviews-->
-                                    <div class="d-flex justify-content-center small text-warning mb-2">
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                        <div class="bi-star-fill"></div>
-                                    </div>
-                                    <!-- Product price-->
-                                    $40.00
                                 </div>
                             </div>
                             <!-- Product actions-->
@@ -282,8 +174,10 @@
             </div>
         </section>
         <!-- Footer-->
-        <footer class="py-3 bg-dark">
-            <div class="container"><p class="m-0 text-center text-white">Copyright &copy; Max Reshetnik 2021</p></div>
+        <footer class="footer py-3 bg-dark mt-auto">
+            <div class="container">
+                <p class="m-0 text-center text-white">Copyright &copy; Max Reshetnik 2021</p>
+            </div>
         </footer>
         <!-- Bootstrap core JS
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"></script>
@@ -293,6 +187,6 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js" integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT" crossorigin="anonymous"></script>
         -->
         <!-- Core theme JS-->
-        <script src="{% static 'shop/scripts.js' %}"></script>
+        <script src="{% static 'shop/bootstrap.bundle.min.js' %}"></script>
     </body>
 </html>

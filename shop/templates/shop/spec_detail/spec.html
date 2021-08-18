@@ -1,119 +1,107 @@
 
 {% extends "shop/base.html" %}
-{% load verbose_names %}
+{% load verbose_names decimal_normalize %}
+{% load get_cart_form_detail from cart_form %}
 
 {% block title %}
 <title>
     {{ spec.product.category.name }} {{ spec.product.name }}
-    {{ spec.product.marking }} {{ spec.tag }} - {{ view.request.current_app }}
+    {{ spec.product.marking }} {{ spec.tag }} - Shop
 </title>
 {% endblock title %}
 
-{% block navbar %}{% include navbar_template_name %}{% endblock %}
-
+<!-- Section -->
 {% block breadcrumbs %}
 {% url 'shop:category' spec.product.category.category.name|lower as category_url %}
-<nav aria-label="breadcrumb">
-    <div class="container px-4 px-lg-5">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
-            <li class="breadcrumb-item">
-                <a href="{{ category_url }}" class="text-decoration-none">
-                    {{ spec.product.category.category.name }}
-                </a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="{{ category_url }}{{ spec.product.category.name|lower }}/"
-                   class="text-decoration-none">{{ spec.product.category.name }}
-                </a>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">
+<ol class="breadcrumb ms-lg-4 ps-lg-4">
+    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
+    <li class="breadcrumb-item">
+        <a href="{{ category_url }}" class="text-decoration-none">
+            {{ spec.product.category.category.name }}
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{{ category_url }}{{ spec.product.category.name|lower }}/"
+           class="text-decoration-none">{{ spec.product.category.name }}
+        </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">
+        {{ spec.product.category.name }} {{ spec.product.name }}
+        {{ spec.product.marking }} {{ spec.tag }}
+    </li>
+</ol>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<!-- Heading Row-->
+<div class="card-group my-5">
+    <div class="card border-0">
+        <img class="card-img-top w-75 rounded"
+             src="{% if spec.image %}{{ spec.image.url }}{% else %}{{ spec.product.image.url }}{% endif %}" alt="..." />
+    </div>
+    <div class="card border-0">
+        <div class="card-body pt-0">
+            <h5 class="card-title mb-3">
                 {{ spec.product.category.name }} {{ spec.product.name }}
                 {{ spec.product.marking }} {{ spec.tag }}
-            </li>
-        </ol>
-    </div>
-</nav>
-{% endblock %}
-
-<!-- Section -->
-{% block content %}
-
-<!-- Heading Row-->
-<div class="card border-0 my-5">
-    <div class="row gx-4 gx-lg-5 align-items-top">
-        <div class="col-lg-6">
-            <img class="card-img-top rounded"
-                 src="{% if spec.image is not None %}{{ spec.image.url }}{% else %}{{ spec.product.image.url }}{% endif %}"
-                 alt="..." />
-        </div>
-        <div class="col-lg-6">
-            <div class="card-body pt-0">
-                <h5 class="card-title mb-3">
-                    {{ spec.product.category.name }} {{ spec.product.name }}
-                    {{ spec.product.marking }} {{ spec.tag }}
-                </h5>
-                {% if spec.rating is None %}
-                <div class="d-flex justify-content-left small mb-4">
-                    <div class="bi-star"></div>
-                    <div class="bi-star"></div>
-                    <div class="bi-star"></div>
-                    <div class="bi-star"></div>
-                    <div class="bi-star"></div>
-                </div>
+            </h5>
+            {% if spec.rating is None %}
+            <div class="d-flex justify-content-start small mb-4">
+                <div class="bi-star"></div>
+                <div class="bi-star"></div>
+                <div class="bi-star"></div>
+                <div class="bi-star"></div>
+                <div class="bi-star"></div>
+            </div>
+            {% else %}
+            <div class="d-flex justify-content-start small text-warning mb-4">
+            {% for star, half in rating_scale %}
+                {% if spec.rating > star %}
+                <div class="bi-star-fill"></div>
+                {% elif spec.rating > half %}
+                <div class="bi-star-half"></div>
                 {% else %}
-                <div class="d-flex justify-content-left small text-warning mb-4">
-                {% for star, half in rating_scale %}
-                    {% if spec.rating > star %}
-                    <div class="bi-star-fill"></div>
-                    {% elif spec.rating > half %}
-                    <div class="bi-star-half"></div>
-                    {% else %}
-                    <div class="bi-star"></div>
-                    {% endif %}
-                {% endfor %}
-                </div>
+                <div class="bi-star"></div>
                 {% endif %}
-                {% if spec.sale_price %}
-                <p class="card-text">
-                    ${{ spec.sale_price }}  <span class="badge bg-dark text-white top-0">Special price</span>
-                </p>
-                {% elif spec.discount %}
-                <p class="card-text">
-                    ${{ spec.discount_price }}
-                    <span class="text-muted text-decoration-line-through">${{ spec.price }}</span>
-                    <span class="badge bg-dark text-white">-{{ spec.discount }}%</span>
-                </p>
-                {% else %}
-                <p class="card-text">${{ spec.price }}</p>
-                {% endif %}
-                <p class="card-text mt-5">description: {{ spec.product.description }}<br/>{{ spec.addition }}</p>
+            {% endfor %}
+            </div>
+            {% endif %}
+            <div class="card-text">
+            {% if spec.sale_price %}
+                ${{ spec.sale_price }} <span class="badge bg-dark text-white top-0 ms-1">Special price</span>
+            {% elif spec.discount %}
+                ${{ spec.discount_price }}
+                <span class="text-muted text-decoration-line-through">${{ spec.price }}</span>
+                <span class="badge bg-dark text-white">-{{ spec.discount }}%</span>
+            {% else %}
+                ${{ spec.price }}
+            {% endif %}
+            </div>
+            <div class="card-text mt-3">
+                description: {{ spec.product.description }}<br/>{{ spec.addition }}
                 {% if spec.pre_packing != 1 %}
-                <p class="card-text">pre-packing
-                    {{ spec.pre_packing|floatformat }}{{ spec.product.get_unit_display }}
+                <p class="text">pre-packing
+                    {{ spec.pre_packing|decimal_normalize }}{{ spec.product.unit|lower }}
                 </p>
                 {% endif %}
             </div>
-            <div class="card-footer p-3 pt-0 border-top-0 bg-transparent position-absolute bottom-0">
-                <form class="d-flex">
-                    {{ form }}
-                    <button class="btn btn-outline-dark" type="submit">
-                        <i class="bi-cart me-1"></i>
-                        Add
-                    </button>
-                </form>
-            </div>
+        </div>
+        <div class="card-footer border-0 bg-transparent">
+            <form method="post" id="add-to-cart-{{ spec.id }}" action="{{ view.request.get_full_path_info }}#add-to-cart-{{ spec.id }}">
+                {% csrf_token %}
+                {% get_cart_form_detail spec cart form is_auth=view.request.user.is_authenticated %}
+            </form>
         </div>
     </div>
 </div>
 <div class="card my-5 py-1 border-0 text-center">
     <div class="card-body bg-light">
         <h6 class="card-title text-white bg-secondary py-2 mb-3">More details:</h6>
-        <div class="container px-5">
-            <div class="row row-cols-2 border-0">
+        <div class="card-text text-start px-5">
+            <div class="row row-cols-2 gy-2 border-0 justify-content-evenly">
             {% block details %}
-                <div class="col">{% verbose_name spec "weight_vol" %}</div>
-                <div class="col">{{ spec.weight_vol|floatformat }} {{ spec.product.get_unit_for_weight_vol_display }}</div>
+                <div class="col-5">{% verbose_name spec "weight_vol" %}</div>
+                <div class="col-3">{{ spec.weight_vol|decimal_normalize }} {{ spec.product.unit_for_weight_vol|lower }}</div>
             {% endblock %}
             </div>
         </div>

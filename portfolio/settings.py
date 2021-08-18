@@ -125,6 +125,9 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# # Media files
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR.joinpath('media')
+
+# Account url
+LOGIN_URL = '/shop/account/login/'

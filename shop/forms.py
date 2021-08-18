@@ -1,5 +1,9 @@
-from django.forms import ModelForm, ValidationError
-from django.db.models.fields.files import ImageFieldFile
+from decimal import Decimal, ROUND_FLOOR
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.forms import (ModelForm, Form, ValidationError, DecimalField,
+                          ModelChoiceField, HiddenInput)
 
 from . import models
 
@@ -19,34 +23,80 @@ def check_image_size(file):
     return file
 
 
+class CustomUserCreationForm(UserCreationForm):
+
+    class Meta(UserCreationForm.Meta):
+        model = get_user_model()
+
+    def __init__(self, request=None, *args, **kwargs):
+        """
+        The 'request' parameter is set for custom create view subclass
+        based on LoginView.
+        The form data comes in via the standard 'data' kwarg.
+        """
+        self.request = request
+        self.user_cache = None
+        super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        if commit:
+            self.user_cache = user
+        return user
+
+    def get_user(self):
+        return self.user_cache
+
+
+class CustomUserChangeForm(UserChangeForm):
+
+    password = None
+
+    class Meta(UserChangeForm.Meta):
+        model = get_user_model()
+        fields = ('username', 'email', 'first_name', 'last_name')
+
+
 class ProductForm(ModelForm):
 
     def clean_image(self):
         file = self.cleaned_data['image']
-        no_change = isinstance(file, ImageFieldFile)
-        return file if no_change else check_image_size(file)
+        committed = getattr(file, '_committed', False)
+        return file if committed else check_image_size(file)
 
 
 class SpecificationForm(ModelForm):
 
-    # class Meta:
-    #     model = models.Specification
-
     def clean_image(self):
         file = self.cleaned_data['image']
-        no_change = isinstance(file, ImageFieldFile)
-        return file if no_change or file is None else check_image_size(file)
+        committed = getattr(file, '_committed', False)
+        return file if committed or file is None else check_image_size(file)
 
 
-class CartForm(ModelForm):
+class CartItemForm(Form):
 
-    class Meta:
-        model = models.Cart
-        fields = ['quantity']
+    specification = ModelChoiceField(
+        queryset=models.Specification.objects.all(),
+        widget=HiddenInput, required=True,
+    )
+    quantity = DecimalField(max_digits=8, decimal_places=3,
+                            min_value=Decimal('0'))
+
+    def clean_quantity(self):
+        qty = self.cleaned_data['quantity']
+        if qty > (av_qty := self.cleaned_data['specification'].available_qty):
+            raise ValidationError(
+                f'Only {av_qty.normalize()} left.'
+            )
+        if (pack_qty := self.cleaned_data['specification'].pre_packing) != 1:
+            qty = (qty // pack_qty) * pack_qty
+        else:
+            qty = qty.to_integral_value(rounding=ROUND_FLOOR)
+        return qty
 
 
-class SpecCustomersForm(ModelForm):
-
-    class Meta:
-        model = models.Specification
-        fields = ['customers']
+# class SpecCustomersForm(ModelForm):
+#
+#     class Meta:
+#         model = models.Specification
+#         fields = ['customers']

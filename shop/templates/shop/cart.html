@@ -1,0 +1,91 @@
+
+{% extends "shop/base.html" %}
+{% load cart_form decimal_normalize %}
+
+{% block title %}
+<title>Cart - Shop</title>
+{% endblock %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb ms-lg-4 ps-lg-4">
+    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'shop:profile' %}" class="text-decoration-none">Account</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Cart</li>
+</ol>
+{% endblock breadcrumbs %}
+
+{% block content %}
+
+<div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
+{% url 'shop:category' category.name|lower as category_url %}
+    {% for spec in spec_list %}
+    <div class="col mb-5">
+        <div class="card h-100">
+            <a class="card-link link-dark text-decoration-none"
+               href="{% url 'shop:spec_detail' spec.product.category.category.name|lower spec.product.category.name|lower spec.id %}">
+                <!-- Product image-->
+                <img class="card-img-top"
+                     src="{% if spec.image %}{{ spec.image.url }}{% else %}{{ spec.product.image.url }}{% endif %}"
+                     alt="..." />
+                <!-- Product details-->
+                <div class="card-body text-center p-3">
+                    <!-- Product name-->
+                    <h6 class="text-center small fw-bold">
+                        {{ spec.product.category.name }} {{ spec.product.name }}
+                        {{ spec.product.marking }} {{ spec.tag }}<br/>
+                        {% if spec.pre_packing != 1 %}
+                        <span class="text-center">pre-packing
+                            {{ spec.pre_packing|decimal_normalize }}{{ spec.product.unit|lower }}
+                        </span>
+                        {% endif %}
+                    </h6>
+                    <!-- Product reviews -->
+                    <div class="text-center small">
+                        {% if spec.rating is None %}
+                        <div class="d-flex justify-content-center small mb-2">
+                            <div class="bi-star"></div>
+                            <div class="bi-star"></div>
+                            <div class="bi-star"></div>
+                            <div class="bi-star"></div>
+                            <div class="bi-star"></div>
+                        </div>
+                        {% else %}
+                        <div class="d-flex justify-content-center small text-warning mb-2">
+                        {% for star, half in rating_scale %}
+                            {% if spec.rating > star %}
+                            <div class="bi-star-fill"></div>
+                            {% elif spec.rating > half %}
+                            <div class="bi-star-half"></div>
+                            {% else %}
+                            <div class="bi-star"></div>
+                            {% endif %}
+                        {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <!-- Product price and sale badge-->
+                    {% if spec.sale_price %}
+                    <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Special price</div>
+                    ${{ spec.sale_price }}
+                    {% elif spec.discount %}
+                    <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">-{{ spec.discount }}%</div>
+                    <span class="text-muted text-decoration-line-through">${{ spec.price }}</span>
+                    ${{ spec.discount_price }}
+                    {% else %}
+                    ${{ spec.price }}
+                    {% endif %}
+                </div>
+            </a>
+            <!-- Product actions-->
+            <div class="card-footer pt-0 border-top-0 bg-transparent mt-auto">
+                {% get_cart_form_list spec cart form size='sm' %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock content %}
+

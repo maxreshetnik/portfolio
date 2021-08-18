@@ -1,0 +1,16 @@
+
+{% extends spec_template_name %}
+
+{% load verbose_names %}
+
+<!-- Smartphone -->
+{% block details %}
+
+<div class="col-5">{% verbose_name spec.product "ram" %}</div>
+<div class="col-3">{{ spec.product.ram }}</div>
+<div class="col-5">{% verbose_name spec.product "memory" %}</div>
+<div class="col-3">{{ spec.product.memory }}</div>
+{{ block.super }}
+
+{% endblock %}
+

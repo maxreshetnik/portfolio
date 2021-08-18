@@ -21,6 +21,11 @@ def file_directory_path():
 
 
 def handle_image(obj):
+    """
+    Change dimensions of an image to the dimensions in IMG_SIZE constant.
+
+    If an image is loaded, the function create new image object and replace old one.
+    """
     if getattr(obj, '_committed', True) or not obj.name:
         return
     try:
@@ -72,11 +77,13 @@ class Category(models.Model):
 
 class Product(models.Model):
 
+    """Abstract class with common fields for all product type classes"""
+
     UNIT_CHOICES = [
-        ('Weight', (('KG', 'kg'), ('LB', 'lb'))),
-        ('Volume', (('L', 'L'), ('GL', 'gal'))),
-        ('PC', 'piece'), ('PK', 'pack'), ('PR', 'pair'),
-        ('BL', 'bottle'), ('LT', 'lot')
+        ('Weight', (('KG', 'kilo'), ('LB', 'pound'))),
+        ('Volume', (('L', 'liter'), ('GAL', 'gallon'))),
+        ('PC', 'piece'), ('PCK', 'pack'), ('PR', 'pair'),
+        ('BTL', 'bottle'), ('LT', 'lot')
     ]
     name = models.CharField(max_length=40)
     marking = models.CharField(
@@ -91,10 +98,10 @@ class Product(models.Model):
     )
     description = models.TextField(blank=True)
     unit = models.CharField(
-        max_length=2, choices=UNIT_CHOICES, default='PC',
+        max_length=3, choices=UNIT_CHOICES, default='PC',
     )
     unit_for_weight_vol = models.CharField(
-        max_length=2, choices=UNIT_CHOICES, default='KG',
+        max_length=3, choices=UNIT_CHOICES, default='KG',
         verbose_name='unit for weight/volume',
     )
     date_added = models.DateField(auto_now_add=True)
@@ -112,6 +119,7 @@ class Product(models.Model):
         return f'{self.category} {self.name} {self.marking}'
 
     def save(self, *args, **kwargs):
+        """extend save method, resize loaded image"""
         handle_image(getattr(self, 'image'))
         super().save(*args, **kwargs)
 
@@ -120,6 +128,15 @@ class Product(models.Model):
 
 
 class Specification(models.Model):
+
+    """
+    create a model with quantity and price characteristics.
+
+    link all product models through the ContentType model.
+    Contains a field named customers, which is used to add
+    products to the cart through an intermediate table with
+    the quantity of items in user's cart.
+    """
 
     tag = models.CharField(max_length=20, blank=True)
     image = models.ImageField(
@@ -155,7 +172,7 @@ class Specification(models.Model):
                    '0 is disabled'),
     )
     available_qty = models.DecimalField(
-        max_digits=8, decimal_places=3, verbose_name='available quantity',
+        max_digits=6, decimal_places=3, verbose_name='available quantity',
         validators=[MinValueValidator(Decimal('0'))],
     )
     addition = models.CharField(
@@ -167,12 +184,13 @@ class Specification(models.Model):
     )
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
-    customers = models.ManyToManyField(USER, through='Cart')
+    customers = models.ManyToManyField(USER, through='CartItem')
 
     def __str__(self):
         return f'{self.content_object}, {self.tag}'
 
     def save(self, *args, **kwargs):
+        """extend save method, resize image and calculate discount_price field"""
         handle_image(getattr(self, 'image'))
         self.discount_price = self.price - (
                 self.price * self.discount / 100
@@ -189,17 +207,30 @@ class Account(USER):
         return f"{self.username}'s account"
 
 
-class Cart(models.Model):
+class CartItem(models.Model):
+
+    """
+    Create intermediate table for ManyToMany field in Specification model and user one.
+
+    The table has a unique constraint on the specification and
+    user fields to prevent duplicate rows.
+    """
 
     specification = models.ForeignKey(
         Specification, on_delete=models.CASCADE,
     )
     user = models.ForeignKey(USER, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+    quantity = models.DecimalField(
+        max_digits=6, decimal_places=3,
+        validators=[MinValueValidator(Decimal('0'))],
+    )
 
     class Meta:
-        verbose_name = 'item'
         verbose_name_plural = 'cart'
+        constraints = [
+            models.UniqueConstraint(fields=['specification', 'user'],
+                                    name='user_item_unique'),
+        ]
 
     def __str__(self):
         return f"{self.specification} {self.quantity}"
@@ -218,6 +249,12 @@ class Rate(models.Model):
     )
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'object_id'],
+                                    name='user_rate_unique'),
+        ]
 
     def __str__(self):
         return f'{self.point} from {self.user} to {self.content_object}'

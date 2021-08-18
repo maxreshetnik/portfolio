@@ -1,0 +1,15 @@
+
+{% extends spec_template_name %}
+
+{% load verbose_names %}
+
+<!-- TV -->
+{% block details %}
+<div class="col-5">{% verbose_name spec.product "screen_diagonal" %}</div>
+<div class="col-3">{{ spec.product.screen_diagonal }}</div>
+<div class="col-5">{% verbose_name spec.product "screen_resolution" %}</div>
+<div class="col-3">{{ spec.product.screen_resolution }}</div>
+{{ block.super }}
+
+{% endblock %}
+

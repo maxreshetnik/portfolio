@@ -12,9 +12,9 @@ class SpecificationInline(GenericStackedInline):
     extra = 0
 
 
-class CartInline(admin.StackedInline):
+class CartItemInline(admin.StackedInline):
 
-    model = models.Cart
+    model = models.CartItem
     extra = 0
 
 
@@ -62,6 +62,7 @@ class ProductAdmin(admin.ModelAdmin):
                        {'fields': fields[7:]})]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """Extend parent method, filter categories for a specific product"""
         if db_field.name == "category":
             product_type = ContentType.objects.get_for_model(self.model)
             kwargs["queryset"] = models.Category.objects.filter(
@@ -74,7 +75,7 @@ class ProductAdmin(admin.ModelAdmin):
 class AccountAdmin(admin.ModelAdmin):
 
     inlines = [
-        CartInline,
+        CartItemInline,
         ShippingAddressInline,
         RateInline,
     ]
@@ -86,4 +87,4 @@ class AccountAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.Rate, admin.ModelAdmin)
-admin.site.register(models.Cart, admin.ModelAdmin)
+admin.site.register(models.CartItem, admin.ModelAdmin)
