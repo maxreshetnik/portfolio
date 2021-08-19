@@ -3,6 +3,7 @@ from django.template.loader import get_template
 
 
 register = template.Library()
+t_cart = get_template('shop/includes/cart_form.html')
 t_list = get_template('shop/includes/cart_form_list.html')
 t_detail = get_template('shop/includes/cart_form_detail.html')
 
@@ -33,6 +34,6 @@ def get_cart_form_context(spec, qty, form, size='md', min_qty=0, is_auth=False):
     return data
 
 
-register.inclusion_tag(t_list, name='get_cart_form')(get_cart_form_context)
+register.inclusion_tag(t_cart, name='get_cart_form')(get_cart_form_context)
 register.inclusion_tag(t_list, name='get_cart_form_list')(get_qty_from_dict)
 register.inclusion_tag(t_detail, name='get_cart_form_detail')(get_qty_from_dict)

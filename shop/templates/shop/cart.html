@@ -1,6 +1,7 @@
 
 {% extends "shop/base.html" %}
-{% load cart_form decimal_normalize %}
+{% load decimal_normalize %}
+{% load get_cart_form from cart_form %}
 
 {% block title %}
 <title>Cart - Shop</title>
@@ -18,73 +19,55 @@
 
 {% block content %}
 
-<div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
-{% url 'shop:category' category.name|lower as category_url %}
-    {% for spec in spec_list %}
-    <div class="col mb-5">
-        <div class="card h-100">
-            <a class="card-link link-dark text-decoration-none"
-               href="{% url 'shop:spec_detail' spec.product.category.category.name|lower spec.product.category.name|lower spec.id %}">
-                <!-- Product image-->
-                <img class="card-img-top"
-                     src="{% if spec.image %}{{ spec.image.url }}{% else %}{{ spec.product.image.url }}{% endif %}"
-                     alt="..." />
-                <!-- Product details-->
-                <div class="card-body text-center p-3">
-                    <!-- Product name-->
-                    <h6 class="text-center small fw-bold">
+<h4 class="text-start ms-lg-5">Product{{ cart|length|pluralize }} in cart</h4>
+
+<div class="row gx-4 gx-xl-5 justify-content-end">
+    <div class="col-12 col-lg-7 mb-5 ms-xl-4 mt-4">
+    {% for spec in cart %}
+        <div class="row text-start small justify-content-start border border-1 mb-3">
+            <!-- Product image-->
+            <img class="col-2 p-1"
+                 src="{% if spec.image %}{{ spec.image.url }}{% else %}{{ spec.product.image.url }}{% endif %}"
+                 alt="..." />
+            <!-- Product details-->
+            <div class="col p-2">
+                <!-- Product name-->
+                <a class="text-dark text-decoration-none" href="{% url 'shop:spec_detail' spec.product.category.category.name|lower spec.product.category.name|lower spec.id %}">
+                    <h6 class="fw-bold">
                         {{ spec.product.category.name }} {{ spec.product.name }}
-                        {{ spec.product.marking }} {{ spec.tag }}<br/>
-                        {% if spec.pre_packing != 1 %}
-                        <span class="text-center">pre-packing
-                            {{ spec.pre_packing|decimal_normalize }}{{ spec.product.unit|lower }}
-                        </span>
-                        {% endif %}
+                        {{ spec.product.marking }} {{ spec.tag }}
                     </h6>
-                    <!-- Product reviews -->
-                    <div class="text-center small">
-                        {% if spec.rating is None %}
-                        <div class="d-flex justify-content-center small mb-2">
-                            <div class="bi-star"></div>
-                            <div class="bi-star"></div>
-                            <div class="bi-star"></div>
-                            <div class="bi-star"></div>
-                            <div class="bi-star"></div>
-                        </div>
-                        {% else %}
-                        <div class="d-flex justify-content-center small text-warning mb-2">
-                        {% for star, half in rating_scale %}
-                            {% if spec.rating > star %}
-                            <div class="bi-star-fill"></div>
-                            {% elif spec.rating > half %}
-                            <div class="bi-star-half"></div>
-                            {% else %}
-                            <div class="bi-star"></div>
-                            {% endif %}
-                        {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <!-- Product price and sale badge-->
-                    {% if spec.sale_price %}
-                    <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">Special price</div>
-                    ${{ spec.sale_price }}
-                    {% elif spec.discount %}
-                    <div class="badge bg-dark text-white position-absolute" style="top: 0.5rem; right: 0.5rem">-{{ spec.discount }}%</div>
-                    <span class="text-muted text-decoration-line-through">${{ spec.price }}</span>
-                    ${{ spec.discount_price }}
-                    {% else %}
-                    ${{ spec.price }}
-                    {% endif %}
-                </div>
-            </a>
+                </a>
+                <!-- Product price and quantity -->
+                price: ${{ spec.customer_price }}<br>
+                quantity: {{ spec.cart_qty|decimal_normalize }} {{ spec.product.get_unit_display }}{{ spec.cart_qty|pluralize }}
+            </div>
             <!-- Product actions-->
-            <div class="card-footer pt-0 border-top-0 bg-transparent mt-auto">
-                {% get_cart_form_list spec cart form size='sm' %}
+            <div class="col-3 col-lg-3 d-flex flex-column p-1 ms-auto">
+                <form class="text-end" method="post">{% csrf_token %}
+                    <input type="hidden" name="{{ form.specification.name }}" value="{{ spec.id }}" required>
+                    <input type="hidden" name="{{ form.quantity.name }}" value="0" required>
+                    <button class="btn text-secondary p-0" type="submit" aria-label="Remove from cart">
+                        <i class="bi-trash"></i>
+                    </button>
+                </form>
+                <h6 class="text-end fw-bold mb-2 me-3 me-xl-4 mt-auto">
+                    <span class="bg-light rounded p-1">${{ spec.total_price|floatformat:2 }}</span>
+                </h6>
+                <form method="post" id="add-to-cart-{{ spec.id }}" action="{% url 'shop:cart' %}#add-to-cart-{{ spec.id }}">
+                    {% csrf_token %}
+                    {% get_cart_form spec spec.cart_qty form size='sm' min_qty=spec.pre_packing is_auth=view.request.user.is_authenticated %}
+                </form>
             </div>
         </div>
-    </div>
     {% endfor %}
+    </div>
+    <div class="col-auto mb-5 ms-auto">
+        <div class="text-start px-4 py-3 border border-2">
+            <h5 class="">Total price: <span class="fw-bold">${{ total_cart_price }}</span></h5>
+            <button class="w-100 fs-5 btn btn-primary mt-5" type="button">Buy</button>
+        </div>
+    </div>
 </div>
 
 {% endblock content %}

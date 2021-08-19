@@ -247,7 +247,6 @@ class CartView(LoginRequiredMixin, ShopView):
         kwargs['total_cart_price'] = cart_sum.quantize(Decimal('1.00'))
         kwargs['cart'] = queryset.order_by('-item_id')
         context = super().get_context_data(**kwargs)
-        print(context['cart'])
         return context
 
 
@@ -288,10 +287,9 @@ class PersonalInfoView(ProfileView):
     template_name = 'shop/personal_info.html'
 
     def get(self, request, *args, **kwargs):
-        kwargs['form_info'] = CustomUserChangeForm(
-            instance=self.request.user
-        )
-        return super().get(request, *args, **kwargs)
+        form = CustomUserChangeForm(instance=self.request.user)
+        context = self.get_context_data(form_info=form, **kwargs)
+        return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
         form = CustomUserChangeForm(

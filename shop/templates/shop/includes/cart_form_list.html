@@ -1,6 +1,5 @@
 
-<input type="hidden" id="{{ spec.id }}" name="{{ form.specification.name }}"
-               value="{{ spec.id }}" class="visually-hidden" required>
+<input type="hidden" id="{{ spec.id }}" name="{{ form.specification.name }}" value="{{ spec.id }}" required>
 <label for="{{ spec.id }}_quantity" class="visually-hidden">Quantity</label>
 <div class="row gx-3 align-items-center position-relative">
     <div class="col-auto ms-4 bg-danger small rounded position-absolute bottom-100" id="{{ spec.id }}_errors">
@@ -16,7 +15,9 @@
             <input type="number" class="form-control border-0 px-1 {{ is_invalid }}"
                    id="{{ spec.id }}_quantity" name="{{ form.quantity.name }}"
                    value="{{ qty }}" step="{{ step }}" min="{{ min_qty }}" aria-describedby="{{ spec.id }}_errors" required>
-            <span class="input-group-text text-secondary ps-0 pe-1 bg-transparent border-0">{{ spec.product.unit|lower }}</span>
+            <span class="input-group-text text-secondary ps-0 pe-1 bg-transparent border-0">
+                {% block qty_unit %}{{ spec.product.unit|lower }}{{ qty|pluralize }}{% endblock qty_unit %}
+            </span>
         </div>
         <button class="btn btn-outline-{{ btn_color|default:'primary' }} border-0 p-0 rounded-circle"
                 type="{{ btn_type|default:'button' }}" onclick="document.getElementById('{{ spec.id }}_quantity').stepUp();">
