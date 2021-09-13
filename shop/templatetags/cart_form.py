@@ -17,15 +17,15 @@ def get_cart_form_context(spec, qty, form, size='md', min_qty=0, is_auth=False):
     """Returns context for inclusion template"""
     step = spec.pre_packing.normalize()
     data = {'spec': spec, 'form': form, 'size': size, 'step': step,
-            'min_qty': min_qty, 'is_auth': is_auth}
+            'is_auth': is_auth}
     if qty:
         data.update({'btn_icon': ('<i class="bi-cart-fill me-1"></i>'
                                   '<i class="bi-check-lg me-1"></i>'),
                      'btn_type': 'submit', 'btn_color': 'warning',
-                     'qty': qty.normalize()})
+                     'min_qty': min_qty, 'qty': qty.normalize()})
     else:
         data.update({'qty': step, 'btn_type': 'button', 'btn_color': 'primary',
-                     'btn_icon': '<i class="bi-cart px-1"></i>'})
+                     'min_qty': step, 'btn_icon': '<i class="bi-cart px-1"></i>'})
 
     if form.is_bound and form['specification'].data == str(spec.id):
         data['non_field_errors'] = ', '.join(form.non_field_errors())

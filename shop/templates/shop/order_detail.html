@@ -1,0 +1,97 @@
+
+{% extends "shop/base.html" %}
+{% load decimal_normalize %}
+
+{% block title %}
+<title>Order No. {{ order.id }} - Shop</title>
+{% endblock %}
+
+{% block cart_num %}{{ cart }}{% endblock %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb ms-lg-4 ps-lg-4">
+    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'shop:profile' %}" class="text-decoration-none">Account</a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'shop:order_list' %}" class="text-decoration-none">Orders</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Order No. {{ order.id }}</li>
+</ol>
+{% endblock breadcrumbs %}
+
+{% block content %}
+
+<div class="row gx-4 gx-xl-5 justify-content-end">
+    <div class="col-12 col-lg-7 mb-5 ms-xl-4">
+        <div class="row text-start small justify-content-start p-2 mb-3 border border-1">
+            <div class="col-6 ps-xl-4">
+                <h6 class="text-start">Shipping address</h6>
+                <div class="small">
+                    {{ order.address }}
+                </div>
+            </div>
+            <div class="col-5 col-xl-5 ms-auto">
+                <h6 class="text-start">Payment method</h6>
+                <form class="small">
+                    <div class="form-check">
+                        <input id="credit" name="paymentMethod" type="radio" class="form-check-input" checked disabled required>
+                        <label class="form-check-label" for="credit">Credit card</label>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <h6 class="text-start mb-2 ps-xl-4">Products in order</h6>
+        {% for item in items %}
+        <div class="row text-start small justify-content-start mb-3 border border-1">
+            <!-- Product image-->
+            <img class="col-2 p-1"
+                 src="{% if item.spec.image %}{{ item.spec.image.url }}{% else %}{{ item.spec.product.image.url }}{% endif %}"
+                 alt="..." />
+            <!-- Product details-->
+            <div class="col p-2">
+                <!-- Product name-->
+                <h6 class="fw-bold">
+                    <a href="{% url 'shop:spec_detail' item.spec.product.category.category.name|lower item.spec.product.category.name|lower item.spec.id %}"
+                       class="text-dark text-decoration-none" >
+                        {{ item.spec.product.category.name }} {{ item.spec.product.name }}
+                        {{ item.spec.product.marking }} {{ item.spec.tag }}
+                    </a>
+                </h6>
+                <!-- Product price and quantity -->
+                price: ${{ item.price }}<br>
+                quantity: {{ item.quantity|decimal_normalize }} {{ item.spec.product.get_unit_display }}{{ item.quantity|pluralize }}
+            </div>
+            <!-- Product actions-->
+            <div class="col-3 d-flex flex-column p-1 ms-auto">
+                <h6 class="text-end fw-bold mt-auto me-3 mb-3">
+                    <span class="bg-light rounded p-1">${{ item.total_price|floatformat:2 }}</span>
+                </h6>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="col-auto mb-5 ms-auto">
+        <div class="text-start px-4 py-3 border border-2">
+            <h5 class="">Total price: <span class="fw-bold">${{ order.order_cost }}</span></h5>
+            <div class="mb-3">
+                <span class="me-2">Status:</span>{{ order.get_status_display }}
+            </div>
+            {% if order.status == order.PROCESSING %}
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                        data-bs-target="#orderModal">Cancel order
+                </button>
+                {% include "shop/includes/modal_order.html" with form_url=view.request.path_info msg='cancel your order?' %}
+            {% elif order.status == order.SHIPPING %}
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                        data-bs-target="#orderModal">Confirm receipt
+                </button>
+                {% include "shop/includes/modal_order.html" with form_url=view.request.path_info msg='confirm receipt of your order?' %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+

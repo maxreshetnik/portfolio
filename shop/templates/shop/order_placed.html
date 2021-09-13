@@ -1,0 +1,19 @@
+
+{% extends "shop/order_detail.html" %}
+
+{% block content %}
+
+{% if success_info %}
+<h5 class="text-start text-success ms-lg-5 mb-5">{{ success_info }}</h5>
+<a class="ms-lg-5" href="{% url 'shop:order_list' %}">Go to orders</a>
+
+{% else %}
+<h5 class="text-start ms-lg-5">{{ cart_is_empty }}</h5>
+<ul class="text-danger">
+    {% for field, error in form.errors.items %}
+    {{ error }}
+    {% endfor %}
+</ul>
+{% endif %}
+{% endblock content %}
+

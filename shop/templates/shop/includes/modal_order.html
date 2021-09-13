@@ -1,0 +1,25 @@
+<div class="modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderModalLabel">Order No. {{ order.id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to {{ msg }}
+            </div>
+            <div class="modal-footer">
+                <form action="{{ form_url }}" method="post">{% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                    <button class="btn btn-sm btn-outline-dark" type="submit" aria-label="Change of order status">
+                        Yes, I'm sure
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% if script %}
+    {% load static %}
+    <script src="{% static 'shop/modal_order.js' %}"></script>
+{% endif %}

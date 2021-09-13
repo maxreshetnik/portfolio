@@ -1,0 +1,104 @@
+
+{% extends "shop/base.html" %}
+
+{% block title %}
+<title>Orders - Shop</title>
+{% endblock %}
+
+{% block cart_num %}{{ cart }}{% endblock %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb ms-lg-4 ps-lg-4">
+    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'shop:profile' %}" class="text-decoration-none">Account</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Orders</li>
+</ol>
+{% endblock breadcrumbs %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-3 col-xl-2 mx-lg-4 mb-4">
+        <a href="{% url 'shop:profile' %}" class="text-dark text-decoration-none">
+            <div class="w-100 p-1 mb-2">Profile</div>
+        </a>
+        <a href="#" class="text-dark text-decoration-none fw-bold">
+            <div class="w-100 p-1">Orders</div>
+        </a>
+    </div>
+    <div class="col-12 col-md col-xxl-6 mt-sm-2 mx-xl-5">
+        <h5 class="text-start mb-3">Orders:</h5>
+
+        {% for order in order_list %}
+        <div class="row text-start small justify-content-start mx-0 mb-3 border border-1">
+            <div class="col p-2">
+                <h6 class="fw-bold">No. {{ order.id }}</h6>
+                <a href="{% url 'shop:order_detail' order.id %}" class="small text-decoration-none">View details</a>
+            </div>
+            <div class="col p-2">
+                <span class="fw-bold me-2">Status:</span>{{ order.get_status_display }}
+                {% if order.status == order.PROCESSING %}<br>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0 mt-2" data-bs-toggle="modal"
+                        data-bs-target="#orderModal" data-bs-number="{{ order.id }}">Cancel
+                </button>
+                {% elif order.status == order.SHIPPING %}<br>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0 mt-2" data-bs-toggle="modal"
+                        data-bs-target="#orderModal" data-bs-number="{{ order.id }}">Confirm receipt
+                </button>
+                {% endif %}
+            </div>
+            <div class="col d-flex flex-column px-1 pb-1 ms-auto">
+                {% if order.status > order.SHIPPING %}
+                <form class="text-end" action="{% url 'shop:order_delete' order.id %}" method="post">
+                    {% csrf_token %}
+                    <button class="btn btn-sm text-secondary p-0" type="submit" aria-label="Remove order">
+                        <i class="bi-trash"></i>
+                    </button>
+                </form>
+                {% endif %}
+                <h6 class="text-end fw-bold mt-auto me-2">${{ order.order_cost }}</h6>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if order_list %}
+            {% if is_paginated %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm pt-4 justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo</a></li>
+                {% else %}
+                    <li class="page-item disabled"><a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo</a></li>
+                {% endif %}
+
+                {% for num in paginator.page_range %}
+                    {% if num == page_obj.number %}
+                    <li class="page-item active" aria-current="page">
+                    {% else %}
+                    <li class="page-item">
+                    {% endif %}
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo</a></li>
+                {% else %}
+                    <li class="page-item disabled"><a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo</a></li>
+                {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        {% include "shop/includes/modal_order.html" with next=view.request.get_full_path_info script=True %}
+
+        {% else %}
+            <h6 class="">You have no orders yet.</h6>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock content %}
+

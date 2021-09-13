@@ -20,6 +20,9 @@
 
 <div class="row">
     <div class="col-auto mx-lg-4 mb-4">
+        <a href="#" class="text-dark text-decoration-none fw-bold">
+            <div class="w-100 p-1 mb-1">Profile</div>
+        </a>
         <div class="list-group" id="list-tab" role="tablist">
             <a class="list-group-item list-group-item-action" id="list-personal-list"
                data-bs-toggle="list" href="#personal-info" role="tab"
@@ -31,8 +34,11 @@
                data-bs-toggle="list" href="#shipping-address" role="tab"
                aria-controls="shipping-address">Shipping address</a>
         </div>
+        <a href="{% url 'shop:order_list' %}" class="text-dark text-decoration-none">
+            <div class="w-100 p-1 mt-1">Orders</div>
+        </a>
     </div>
-    <div class="col-12 col-sm col-xxl-6 pt-lg-1 mt-sm-2 mx-xl-5">
+    <div class="col-12 col-md col-xxl-6 mt-sm-2 mx-xl-5">
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade {{ show_success }}" id="success-message" role="tabpanel">
                 <div class="text-center text-success mb-2">
@@ -59,12 +65,12 @@
                                     <input type="email" class="form-control" id="email" value="{{ view.request.user.email }}">
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-sm-6">
                                 <label for="first_name" class="form-label">First name</label>
                                 <input type="text" class="form-control" id="first_name" value="{{ view.request.user.first_name }}">
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-sm-6">
                                 <label for="last_name" class="form-label">Last name</label>
                                 <input type="text" class="form-control" id="last_name" value="{{ view.request.user.last_name }}">
                             </div>

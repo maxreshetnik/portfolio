@@ -6,11 +6,18 @@ from . import views
 app_name = 'shop'
 
 urlpatterns = [
-    # path('layout/', views.layout_view, name='layout'),
     path('', views.HomePageView.as_view(), name='home'),
     path('account/', include('django.contrib.auth.urls')),
     path('account/cart/',
          views.CartView.as_view(), name='cart'),
+    path('account/orders/',
+         views.OrderListView.as_view(), name='order_list'),
+    path('account/orders/<int:pk>/',
+         views.OrderDetailView.as_view(), name='order_detail'),
+    path('account/orders/<int:pk>/delete/',
+         views.OrderDeleteView.as_view(), name='order_delete'),
+    path('account/place-order/',
+         views.PlaceOrderView.as_view(), name='place_order'),
     path('account/sign-up/',
          views.CreateAccountView.as_view(), name='sign_up'),
     path('account/profile/',
@@ -27,6 +34,4 @@ urlpatterns = [
          views.SubcategorySpecList.as_view(), name='subcategory'),
     path('<category>/<subcategory>/<int:pk>/',
          views.SpecificationDetail.as_view(), name='spec_detail'),
-    # path('<category>/products/',
-    #      views.ProductList.as_view(), name='products'),
 ]

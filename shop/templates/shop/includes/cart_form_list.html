@@ -16,7 +16,7 @@
                    id="{{ spec.id }}_quantity" name="{{ form.quantity.name }}"
                    value="{{ qty }}" step="{{ step }}" min="{{ min_qty }}" aria-describedby="{{ spec.id }}_errors" required>
             <span class="input-group-text text-secondary ps-0 pe-1 bg-transparent border-0">
-                {% block qty_unit %}{{ spec.product.unit|lower }}{{ qty|pluralize }}{% endblock qty_unit %}
+                {% block qty_unit %}{{ spec.product.unit|lower }}{% endblock qty_unit %}
             </span>
         </div>
         <button class="btn btn-outline-{{ btn_color|default:'primary' }} border-0 p-0 rounded-circle"
