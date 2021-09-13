@@ -1,0 +1,15 @@
+{% extends "shop/includes/cart_form_list.html" %}
+{% load decimal_normalize %}
+
+{% block available_qty %}
+<div class="col col-lg-6 col-xl-8">
+    <span id="available-info" class="form-text text-secondary">
+        {{ spec.available_qty|decimal_normalize }}
+        {{ spec.product.get_unit_display }}{{ spec.available_qty|pluralize }} available
+    </span>
+</div>
+<div class="w-100 py-1"></div>
+<div class="col-lg-auto px-lg-2"></div>
+{% endblock available_qty %}
+
+{% block btn_text %}{% if btn_type != 'submit' %}Add to cart{% endif %}{% endblock %}

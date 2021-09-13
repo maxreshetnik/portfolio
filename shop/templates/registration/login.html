@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+
+{% load static %}
+
+<html lang="en" class="h-100">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="Max Reshetnik" />
+
+        <title>{% block title %}Login{% endblock %}</title>
+
+        <!-- Favicon -->
+        <link rel="shortcut icon" type="image/png" href="{% static 'shop/icon.png' %}" />
+        <!-- Bootstrap icons-->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+        <!-- Bootstrap theme CSS
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+         -->
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="{% static 'shop/style.css' %}" rel="stylesheet" type="text/css"/>
+    </head>
+    <body class="d-flex flex-column h-100 bg-light">
+        <div class="text-center w-100 pb-5 m-auto" style="max-width: 330px;">
+
+            {% block content %}
+            <h1 class="h3 mb-5 fw-normal">Please login</h1>
+            <p class="lh-sm small text-danger mb-2">
+            {% if next and view.request.user.is_authenticated %}
+                Your account doesn't have access to this page. To proceed,
+                please login with an account that has access.
+            {% endif %}
+            </p>
+
+            {% include "shop/includes/login.html" %}
+
+            {% endblock content %}
+        </div>
+    </body>
+</html>

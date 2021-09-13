@@ -1,0 +1,57 @@
+{% extends "shop/profile.html" %}
+
+{% block success %}Personal information changed{% endblock success %}
+
+{% block personal_info %}
+<form method="post" action="{% url 'shop:personal_info' %}">{% csrf_token %}
+    <div class="lh-sm small text-center text-danger">{{ form_info.non_field_errors|join:" " }}</div>
+    <div class="row g-3">
+        <div class="col-12">
+            <label for="{{ form_info.username.id_for_label }}" class="form-label">Username<span class="text-danger">*</span></label>
+            <div class="input-group has-validation">
+                <span class="input-group-text"><i class="bi-person"></i></span>
+                <input type="text" class="form-control {% if form_info.username.errors %}is-invalid{% endif %}"
+                       name="{{ form_info.username.html_name }}" id="{{ form_info.username.id_for_label }}"
+                       placeholder="Username" value="{{ form_info.username.value|default_if_none:'' }}"
+                       autocapitalize="off" required>
+                <div class="invalid-feedback">
+                    {{ form_info.username.errors|join:" " }}
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <label for="{{ form_info.email.id_for_label }}" class="form-label">Email</label>
+            <div class="input-group has-validation">
+                <span class="input-group-text">@</span>
+                <input type="email" class="form-control {% if form_info.email.errors %}is-invalid{% endif %}"
+                       name="{{ form_info.email.html_name }}" id="{{ form_info.email.id_for_label }}"
+                       placeholder="you@example.com" value="{{ form_info.email.value|default_if_none:'' }}">
+                <div class="invalid-feedback">
+                    {{ form_info.email.errors|join:" " }}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label for="{{ form_info.first_name.id_for_label }}" class="form-label">First name</label>
+            <input type="text" class="form-control {% if form_info.first_name.errors %}is-invalid{% endif %}"
+                       name="{{ form_info.first_name.html_name }}" id="{{ form_info.first_name.id_for_label }}"
+                       value="{{ form_info.first_name.value|default_if_none:'' }}">
+                <div class="invalid-feedback">
+                    {{ form_info.first_name.errors|join:" " }}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <label for="{{ form_info.last_name.id_for_label }}" class="form-label">Last name</label>
+            <input type="text" class="form-control {% if form_info.last_name.errors %}is-invalid{% endif %}"
+                       name="{{ form_info.last_name.html_name }}" id="{{ form_info.last_name.id_for_label }}"
+                       value="{{ form_info.last_name.value|default_if_none:'' }}">
+                <div class="invalid-feedback">
+                    {{ form_info.last_name.errors|join:" " }}
+            </div>
+        </div>
+    </div>
+    <button class="btn btn-outline-dark mt-5" type="submit">Confirm changes</button>
+</form>
+{% endblock personal_info %}
+

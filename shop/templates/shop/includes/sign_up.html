@@ -1,0 +1,32 @@
+
+{% if form.is_bound and form.errors %}
+    {% for field, error in form.errors.items %}
+    <p class="lh-sm small text-danger mb-2">{{ error|join:" " }}</p>
+    {% endfor %}
+{% endif %}
+<form method="post" action="{% url 'shop:sign_up' %}" class="px-3">{% csrf_token %}
+    <div class="form-floating">
+        <input class="form-control rounded-0 rounded-top {% if form.username.errors %}is-invalid mb-0{% endif %}"
+               type="text" style="margin-bottom: -1px;" name="{{ form.username.html_name }}"
+               id="{{ form.username.id_for_label }}" value="{{ form.username.value|default_if_none:'' }}"
+               placeholder="Username" autocapitalize="off" autocomplete="off" required>
+        {{ form.username.label_tag }}
+    </div>
+    <div class="form-floating">
+        <input class="form-control rounded-0" type="password" style="margin-bottom: -1px;"
+               value="{{ form.password1.value|default_if_none:'' }}" name="{{ form.password1.html_name }}"
+               id="{{ form.password1.id_for_label }}" placeholder="{{ form.password1.label }}"
+               autocapitalize="off" autocomplete="new-password" required>
+        {{ form.password1.label_tag }}
+    </div>
+    <div class="form-floating">
+        <input class="form-control rounded-0 rounded-bottom {% if form.password2.errors %}is-invalid{% endif %}"
+               type="password" name="{{ form.password2.html_name }}" id="{{ form.password2.id_for_label }}"
+               placeholder="{{ form.password2.label }}" autocapitalize="off" autocomplete="new-password" required>
+        {{ form.password2.label_tag }}
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="w-50 btn btn-lg btn-warning mt-5" type="submit">Sign-up</button>
+</form>
+
+

@@ -1,0 +1,24 @@
+
+<p class="lh-sm small text-danger mb-2">
+{% if form.errors %}
+    Your username and password didn't match. Please try again.
+{% endif %}
+</p>
+<form method="post" action="{% url 'shop:login' %}" class="px-3">{% csrf_token %}
+    <div class="form-floating">
+        <input type="text" class="form-control rounded-0 rounded-top" style="margin-bottom: -1px;"
+               name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}"
+               placeholder="Username" required>
+        {{ form.username.label_tag }}
+    </div>
+    <div class="form-floating">
+        <input type="password" class="form-control rounded-0 rounded-bottom"
+               name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}"
+               placeholder="Password" autocomplete="current-password" required>
+        {{ form.password.label_tag }}
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="w-50 btn btn-lg btn-primary mt-5" type="submit">Login</button>
+</form>
+<p><a href="{% url 'shop:password_reset' %}" class="btn mt-3 disabled" tabindex="-1"  role="button" aria-disabled="true">Forgot Password?</a></p>
+

@@ -1,0 +1,16 @@
+{% extends "registration/login.html" %}
+
+{% block title %}Sign-up{% endblock %}
+
+{% block content %}
+{% if view.request.user.is_authenticated %}
+    <p class="lh-sm small text-danger mb-2">
+        Please logout if you want to register another account.
+    </p>
+    <a href="{% url 'shop:logout' %}?next={% url 'shop:sign_up' %}" class="w-50 btn btn-lg btn-primary mt-4" type="button">Logout</a>
+{% else %}
+    <h1 class="h3 mb-5 fw-normal">Please sign up</h1>
+    {% include "shop/includes/sign_up.html" %}
+{% endif %}
+
+{% endblock content %}

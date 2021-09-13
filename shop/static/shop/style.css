@@ -1,0 +1,43 @@
+
+@import url(bootstrap.min.css);
+
+/* remove input number arrows and box-shadow*/
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+input[type="number"]:hover,
+input[type="number"]:focus {
+  -moz-appearance: number-input;
+  box-shadow:none;
+}
+
+input[type="search"]:focus {
+  box-shadow:none;
+}
+
+.form-control.is-invalid:focus {
+  box-shadow:none;
+}
+
+.input-group.is-invalid {
+  border-color:#dc3545 !important;
+}
+
+
+/* focus when child element is focused */
+
+.form-floating:focus-within {
+  z-index: 2;
+
+}
+/*
+.input-group:focus-within {
+  border-color:rgb(20, 65, 128) !important;
+}
+*/

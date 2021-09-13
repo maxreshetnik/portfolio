@@ -1,0 +1,122 @@
+
+{% extends "shop/base.html" %}
+{% load decimal_normalize %}
+{% load get_cart_form from cart_form %}
+
+{% block title %}
+<title>Cart - Shop</title>
+{% endblock %}
+
+{% block cart_num %}{{ num_in_cart }}{% endblock %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb ms-lg-4 ps-lg-4">
+    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'shop:profile' %}" class="text-decoration-none">Account</a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Cart</li>
+</ol>
+{% endblock breadcrumbs %}
+
+{% block content %}
+
+{% if num_in_cart %}
+
+<div class="row gx-4 gx-xl-5 justify-content-end">
+    <div class="col-12 col-lg-7 mb-5 ms-xl-4">
+        <div class="row text-start small justify-content-start p-2 mb-3 border border-1">
+            <div class="col-6 ps-xl-4">
+                <h6 class="text-start">Shipping address</h6>
+                <div class="small">
+                    {% if order.address %}
+                    {{ order.address }}<br>
+                    <a href="#" class="btn btn-sm p-0 mt-2 text-primary disabled" tabindex="-1" aria-disabled="true">change</a>
+                    {% else %}
+                    <div class="mt-3">
+                        <a href="#" class="btn btn-sm p-0 text-danger disabled" tabindex="-1" aria-disabled="true">choose a shipping address</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-5 col-xl-5 ms-auto">
+                <h6 class="text-start">Payment method</h6>
+                <form class="small">
+                    <div class="form-check">
+                        <input id="credit" name="paymentMethod" type="radio" class="form-check-input" checked disabled required>
+                        <label class="form-check-label" for="credit">Credit card</label>
+                    </div>
+                    <div class="form-check">
+                        <input id="debit" name="paymentMethod" type="radio" class="form-check-input" disabled required>
+                        <label class="form-check-label" for="debit">Debit card</label>
+                    </div>
+                    <div class="form-check">
+                        <input id="paypal" name="paymentMethod" type="radio" class="form-check-input" disabled required>
+                        <label class="form-check-label" for="paypal">PayPal</label>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <h6 class="text-start mb-2 ps-xl-4">Product{{ num_in_cart|pluralize }} in cart</h6>
+        <div class="text-danger small mb-1 ms-lg-4">{{ error_msg }}</div>
+        {% for item in cart %}
+        <div class="row text-start small justify-content-start mb-3 border border-1 {% if item.error_msg %}border-danger{% endif %}">
+            <!-- Product image-->
+            <img class="col-2 p-1"
+                 src="{% if item.spec.image %}{{ item.spec.image.url }}{% else %}{{ item.spec.product.image.url }}{% endif %}"
+                 alt="..." />
+            <!-- Product details-->
+            <div class="col p-2">
+                <!-- Product name-->
+                <h6 class="fw-bold">
+                    <a href="{% url 'shop:spec_detail' item.spec.product.category.category.name|lower item.spec.product.category.name|lower item.spec.id %}"
+                       class="text-dark text-decoration-none" >
+                        {{ item.spec.product.category.name }} {{ item.spec.product.name }}
+                        {{ item.spec.product.marking }} {{ item.spec.tag }}
+                    </a>
+                </h6>
+                <!-- Product price and quantity -->
+                price: ${{ item.price }}<br>
+                quantity: {{ item.quantity|decimal_normalize }} {{ item.spec.product.get_unit_display }}{{ item.quantity|pluralize }}
+                <div class="small text-danger">{{ item.error_msg }}</div>
+            </div>
+            <!-- Product actions-->
+            <div class="col-3 d-flex flex-column p-1 ms-auto">
+                <form class="text-end" method="post">{% csrf_token %}
+                    <input type="hidden" name="{{ form.specification.name }}" value="{{ item.spec.id }}" required>
+                    <input type="hidden" name="{{ form.quantity.name }}" value="0" required>
+                    <button class="btn text-secondary p-0" type="submit" aria-label="Remove from cart">
+                        <i class="bi-trash"></i>
+                    </button>
+                </form>
+                <h6 class="text-end fw-bold mb-2 me-3 me-xl-4 mt-auto">
+                    <span class="bg-light rounded p-1">${{ item.total_price|floatformat:2 }}</span>
+                </h6>
+                <form method="post" id="add-to-cart-{{ item.spec.id }}" action="{% url 'shop:cart' %}#add-to-cart-{{ item.spec.id }}">
+                    {% csrf_token %}
+                    {% get_cart_form item.spec item.quantity form size='sm' min_qty=item.spec.pre_packing is_auth=view.request.user.is_authenticated %}
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="col-auto mb-5 ms-auto">
+        <div class="text-start px-4 py-3 border border-2">
+            <h5 class="">Total price: <span class="fw-bold">${{ order_cost }}</span></h5>
+            <form method="post" action="{% url 'shop:place_order' %}">{% csrf_token %}
+                <input type="hidden" name="order_cost" value="{{ order_cost }}" required>
+                {% if error_msg %}
+                <button class="w-100 fs-5 btn btn-primary mt-5" type="button" disabled>Place Order</button>
+                {% else %}
+                <button class="w-100 fs-5 btn btn-primary mt-5" type="submit">Place Order</button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<h5 class="text-start ms-lg-5">Your cart is empty</h5>
+{% endif %}
+{% endblock content %}
+

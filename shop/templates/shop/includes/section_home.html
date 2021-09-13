@@ -1,0 +1,9 @@
+{% extends "shop/includes/section.html" %}
+
+{% block spec_link %}
+{% url 'shop:spec_detail' spec.product.category.category.name|lower spec.product.category.name|lower spec.id %}
+{% endblock spec_link %}
+
+{% block product_name %}
+{{ spec.product.category.name }} {{ spec.product.name }} {{ spec.product.marking }} {{ spec.tag }}
+{% endblock product_name %}
