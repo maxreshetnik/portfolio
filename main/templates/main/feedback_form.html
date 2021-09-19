@@ -1,0 +1,44 @@
+{% extends "main/base.html" %}
+
+{% block feedback_input %}
+<div class="lh-sm small text-center text-danger">{{ form.non_field_errors|join:" " }}</div>
+<div class="col-12">
+    <label for="{{ form.name.id_for_label }}" class="visually-hidden">Name</label>
+    <div class="input-group has-validation">
+        <span class="input-group-text"><i class="bi-person"></i></span>
+        <input type="text" class="form-control {% if form.name.errors %}is-invalid{% endif %}"
+               name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}"
+               placeholder="Name" value="{{ form.name.value|default_if_none:'' }}"
+               required>
+        <div class="invalid-feedback">
+            {{ form.name.errors|join:" " }}
+        </div>
+    </div>
+</div>
+<div class="col-12">
+    <label for="{{ form.email.id_for_label }}" class="visually-hidden">Email</label>
+    <div class="input-group has-validation">
+        <span class="input-group-text">@</span>
+        <input type="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+               name="{{ form.email.html_name }}" id="{{ form.email.id_for_label }}"
+               placeholder="E-mail" value="{{ form.email.value|default_if_none:'' }}" required>
+        <div class="invalid-feedback">
+            {{ form.email.errors|join:" " }}
+        </div>
+    </div>
+</div>
+<div class="col-12">
+    <label for="{{ form.message.id_for_label }}" class="visually-hidden">Message</label>
+    <textarea class="form-control {% if form.message.errors %}is-invalid{% endif %}" rows="7"
+               name="{{ form.message.html_name }}" id="{{ form.message.id_for_label }}"
+               placeholder="Message" required>{{ form.message.value|default_if_none:'' }}</textarea>
+    <div class="invalid-feedback">
+        {{ form.message.errors|join:" " }}
+    </div>
+</div>
+{% endblock feedback_input %}
+
+{% block footer %}
+{{ block.super }}
+<script>window.location.hash = 'contact';</script>
+{% endblock footer %}

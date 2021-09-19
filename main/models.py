@@ -8,6 +8,7 @@ class CustomUser(AbstractUser):
 
 class Portfolio(models.Model):
 
+    specialization = models.CharField(unique=True, max_length=30)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     email = models.EmailField()
@@ -17,7 +18,7 @@ class Portfolio(models.Model):
     github = models.URLField(blank=True, verbose_name='GitHub')
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+        return f'{self.first_name} {self.last_name} - {self.specialization}'
 
 
 class Project(models.Model):
@@ -33,7 +34,25 @@ class Project(models.Model):
     )
 
     class Meta:
-        ordering = ['-date_added']
+        ordering = ['-id']
 
     def __str__(self):
         return self.name
+
+
+class Feedback(models.Model):
+
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    message = models.TextField()
+    replied = models.BooleanField(default=False)
+    date_added = models.DateTimeField(auto_now_add=True)
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name='feedbacks',
+    )
+
+    class Meta:
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.name}, {self.message[:30]}, {self.date_added}'

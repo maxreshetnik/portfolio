@@ -16,9 +16,6 @@ def move_media(*names, back=False):
             except FileNotFoundError:
                 new_path.parent.mkdir(parents=True)
                 old_path.rename(new_path)
-            # print(new_path)
-            # print(new_path.parent, '----', new_path.name)
-            # print(val)
 
 
 def get_filefield_values(*ct_id):

@@ -131,3 +131,5 @@ MEDIA_ROOT = BASE_DIR.joinpath('media')
 
 # Account url
 LOGIN_URL = '/shop/account/login/'
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

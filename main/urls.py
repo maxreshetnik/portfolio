@@ -13,4 +13,5 @@ urlpatterns = [
     path('layout/sing-in/', views.sing_in_view, name='layout_sing_in'),
     path('layout/checkout/', views.checkout_view, name='layout_checkout'),
     path('layout/footer/', views.footer_view, name='layout_footer'),
+    path('layout/scrolling/', views.scrolling_nav_view, name='scrolling_nav'),
 ]
