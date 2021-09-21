@@ -1,24 +1,15 @@
 
-{% extends "shop/base.html" %}
+{% extends "shop/profile.html" %}
 
 {% block title %}
 <title>Orders - Shop</title>
 {% endblock %}
 
-{% block cart_num %}{{ cart }}{% endblock %}
-
-{% block breadcrumbs %}
-<ol class="breadcrumb ms-lg-4 ps-lg-4">
-    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
-    <li class="breadcrumb-item">
-        <a href="{% url 'shop:profile' %}" class="text-decoration-none">Account</a>
-    </li>
-    <li class="breadcrumb-item active" aria-current="page">Orders</li>
-</ol>
-{% endblock breadcrumbs %}
+{% block current_page %}
+<li class="breadcrumb-item active" aria-current="page">Orders</li>
+{% endblock current_page %}
 
 {% block content %}
-
 <div class="row">
     <div class="col-3 col-xl-2 mx-lg-4 mb-4">
         <a href="{% url 'shop:profile' %}" class="text-dark text-decoration-none">

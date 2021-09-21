@@ -1,7 +1,5 @@
 {% extends "shop/profile.html" %}
 
-{% block success %}Personal information changed{% endblock success %}
-
 {% block personal_info %}
 <form method="post" action="{% url 'shop:personal_info' %}">{% csrf_token %}
     <div class="lh-sm small text-center text-danger">{{ form_info.non_field_errors|join:" " }}</div>

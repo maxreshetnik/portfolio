@@ -251,9 +251,10 @@ class Order(models.Model):
     PROCESSING = 2
     SHIPPING = 3
     FINISHED = 4
+    CANCELED = 5
     STATUS_CHOICES = [
-        (CART, 'Cart'), (PROCESSING, 'Processing'),
-        (SHIPPING, 'Shipping'), (FINISHED, 'Finished'),
+        (CART, 'Cart'), (PROCESSING, 'Processing'), (SHIPPING, 'Shipping'),
+        (FINISHED, 'Finished'), (CANCELED, 'Canceled'),
     ]
     status = models.PositiveIntegerField(
         choices=STATUS_CHOICES,
@@ -291,7 +292,8 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        if self.status == self.FINISHED:
+        # noinspection PyTypeChecker
+        if self.status > self.SHIPPING:
             super().delete(*args, **kwargs)
 
 

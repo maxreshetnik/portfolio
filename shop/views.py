@@ -11,6 +11,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
+from django.contrib import messages
 from django.db.models import (Prefetch, FilteredRelation, Q, Subquery,
                               OuterRef, Count, Avg, F, When, Case,
                               prefetch_related_objects)
@@ -300,6 +301,7 @@ class CartView(LoginRequiredMixin, ShopView):
 
         context = super().get_context_data(**kwargs)
         context['order'] = kwargs['cart'][0].order
+        context['messages'] = messages.get_messages(self.request)
         return context
 
 
@@ -310,6 +312,7 @@ class AccountView(LoginRequiredMixin, ShopView):
     def get_context_data(self, **kwargs):
         kwargs['cart'] = self.get_cart_items().count()
         context = super().get_context_data(**kwargs)
+        context['messages'] = messages.get_messages(self.request)
         return context
 
 
@@ -331,6 +334,7 @@ class PlaceOrderView(AccountView):
             kwargs['cart_is_empty'] = empty_msg
             return self.render_to_response(self.get_context_data(**kwargs))
         # if not order.address:
+        #     messages.warning(request, 'Please select a shipping address.')
         #     return HttpResponseRedirect(f'{reverse("shop:cart")}')
         order.status = Order.PROCESSING
         form = PartialOrderForm(request.POST, instance=order)
@@ -342,15 +346,17 @@ class PlaceOrderView(AccountView):
                 context = self.get_context_data(**kwargs)
                 return self.render_to_response(context)
             else:
+                msg = 'Quantity is not available for some items'
+                messages.error(request, msg, extra_tags='danger')
                 return HttpResponseRedirect(f'{reverse("shop:cart")}')
-                # msg = 'Quantity is not available for some items'
-                # form.add_error(None, ValidationError(msg, code='qty'))
         if form.has_error('order_cost', code='price'):
+            messages.error(request, 'Some items have changed in price',
+                           extra_tags='danger')
             return HttpResponseRedirect(f'{reverse("shop:cart")}')
         else:
-            context = self.get_context_data(**kwargs)
-            context['form'] = form
-            return self.render_to_response(context)
+            for error in form.errors.values():
+                messages.warning(request, '\n'.join(error))
+            return HttpResponseRedirect(f'{reverse("shop:cart")}')
 
     def get_context_data(self, **kwargs):
         kwargs['form'] = ''
@@ -408,13 +414,18 @@ class OrderDetailView(SingleObjectMixin, AccountView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if self.object.status < self.object.FINISHED:
-            available_qty_handler(Order, instance=self.object)
+        if self.object.status < self.object.SHIPPING:
+            available_qty_handler(self.object)
+            self.object.status = self.object.CANCELED
+            self.object.save()
+            messages.info(request, 'Your order has been canceled.')
+        elif self.object.status == self.object.SHIPPING:
             self.object.status = self.object.FINISHED
             self.object.save()
+            messages.info(request, 'Confirmed.')
         if next_url := request.POST.get('next', ''):
             return HttpResponseRedirect(next_url)
-        context = self.get_context_data(object=self.object)
+        context = self.get_context_data(object=self.object, **kwargs)
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
@@ -442,12 +453,11 @@ class ProfileView(AccountView):
         if form.is_valid():
             form.save()
             context = self.get_context_data(**kwargs)
-            context['show_info'], context['show_success'] = '', 'show active'
-            return self.render_to_response(context)
+            messages.success(request, 'Password changed.')
         else:
             context = self.get_context_data(form=form, **kwargs)
-            context['show_info'], context['show_pas'] = '', 'show active'
-            return self.render_to_response(context)
+        context['show_info'], context['show_pas'] = '', 'show active'
+        return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
         if 'form' not in kwargs:
@@ -476,6 +486,7 @@ class PersonalInfoView(ProfileView):
         )
         if form.is_valid():
             form.save()
+            messages.success(request, 'Personal information changed.')
             return HttpResponseRedirect(f'{reverse("shop:profile")}')
         else:
             context = self.get_context_data(form_info=form, **kwargs)

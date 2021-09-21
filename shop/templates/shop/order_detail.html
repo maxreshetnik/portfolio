@@ -1,28 +1,19 @@
 
-{% extends "shop/base.html" %}
+{% extends "shop/profile.html" %}
 {% load decimal_normalize %}
 
 {% block title %}
 <title>Order No. {{ order.id }} - Shop</title>
 {% endblock %}
 
-{% block cart_num %}{{ cart }}{% endblock %}
-
-{% block breadcrumbs %}
-<ol class="breadcrumb ms-lg-4 ps-lg-4">
-    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
-    <li class="breadcrumb-item">
-        <a href="{% url 'shop:profile' %}" class="text-decoration-none">Account</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{% url 'shop:order_list' %}" class="text-decoration-none">Orders</a>
-    </li>
-    <li class="breadcrumb-item active" aria-current="page">Order No. {{ order.id }}</li>
-</ol>
-{% endblock breadcrumbs %}
+{% block current_page %}
+<li class="breadcrumb-item">
+    <a href="{% url 'shop:order_list' %}" class="text-decoration-none">Orders</a>
+</li>
+<li class="breadcrumb-item active" aria-current="page">Order No. {{ order.id }}</li>
+{% endblock current_page %}
 
 {% block content %}
-
 <div class="row gx-4 gx-xl-5 justify-content-end">
     <div class="col-12 col-lg-7 mb-5 ms-xl-4">
         <div class="row text-start small justify-content-start p-2 mb-3 border border-1">
@@ -92,6 +83,5 @@
         </div>
     </div>
 </div>
-
 {% endblock content %}
 
