@@ -14,6 +14,7 @@ class Portfolio(models.Model):
     email = models.EmailField()
     about = models.TextField()
     photo = models.ImageField(upload_to='main/')
+    tech_stack = models.TextField()
     tools = models.TextField()
     github = models.URLField(blank=True, verbose_name='GitHub')
 

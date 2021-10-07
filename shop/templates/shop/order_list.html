@@ -83,7 +83,9 @@
             </nav>
             {% endif %}
 
-        {% include "shop/includes/modal_order.html" with next=view.request.get_full_path_info script=True %}
+        {% load static %}
+        {% static "shop/modal_order.js" as modal_js %}
+        {% include "shop/includes/modal_order.html" with next=view.request.get_full_path_info modal_js=modal_js %}
 
         {% else %}
             <h6 class="">You have no orders yet.</h6>

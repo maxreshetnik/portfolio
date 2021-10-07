@@ -19,7 +19,6 @@
         </div>
     </div>
 </div>
-{% if script %}
-    {% load static %}
-    <script src="{% static 'shop/modal_order.js' %}"></script>
+{% if modal_js %}
+    <script src="{{ modal_js }}"></script>
 {% endif %}
