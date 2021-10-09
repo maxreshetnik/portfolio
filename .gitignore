@@ -1,0 +1,13 @@
+.*
+!.gitignore
+*.py[co]
+*.sqlite3
+*.egg-info
+__pycache__/
+venv/
+MANIFEST.in
+media/
+dist/
+
+**/migrations/*
+!**/migrations/__init__.py
