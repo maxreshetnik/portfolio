@@ -376,14 +376,14 @@ class SmartphoneProduct(Product):
 
 class ClothingProduct(Product):
 
-    GENDER_CHOICES = [
+    TYPE_CHOICES = [
         ('M', 'Men'), ('W', 'Women'), ('K', 'Kids')
     ]
     SIZE_CHOICES = [
         ('S', 'S'), ('M', 'M'), ('L', 'L'),
         ('XL', 'XL'), ('2X', 'XXL'),
     ]
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    type = models.CharField(max_length=1, choices=TYPE_CHOICES)
     size = models.CharField(
         max_length=2, choices=SIZE_CHOICES, blank=True,
     )

@@ -9,6 +9,7 @@ class CustomUser(AbstractUser):
 class Portfolio(models.Model):
 
     specialization = models.CharField(unique=True, max_length=30)
+    homepage = models.BooleanField(default=True)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     email = models.EmailField()
@@ -18,8 +19,19 @@ class Portfolio(models.Model):
     tools = models.TextField()
     github = models.URLField(blank=True, verbose_name='GitHub')
 
+    class Meta:
+        ordering = ['-id']
+
     def __str__(self):
         return f'{self.first_name} {self.last_name} - {self.specialization}'
+
+    def save(self, *args, **kwargs):
+        if self.homepage:
+            q = Portfolio.objects.all()
+            if self.pk is not None:
+                q = q.exclude(pk=self.pk)
+            q.filter(homepage=True).update(homepage=False)
+        super().save(*args, **kwargs)
 
 
 class Project(models.Model):

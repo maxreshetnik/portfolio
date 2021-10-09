@@ -1,10 +1,9 @@
-from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.forms import modelform_factory
 from django.views.generic import TemplateView
 from django.views.generic.edit import CreateView
 from django.contrib.messages.views import SuccessMessageMixin
-from django.contrib.messages import get_messages
+from django.contrib.messages import get_messages, warning as msg_warning
 
 from .models import Portfolio, Feedback
 
@@ -36,9 +35,12 @@ class HomePageView(TemplateView):
     def get_context_data(self, **kwargs):
         """Extends context data with portfolio and projects info."""
         context = super().get_context_data(**kwargs)
-        portfolio = get_object_or_404(
-            Portfolio, specialization='python developer',
-        )
-        projects = portfolio.projects.all()
-        context.update({'portfolio': portfolio, 'projects': projects})
+        try:
+            portfolio = Portfolio.objects.filter(homepage=True)[0]
+        except IndexError:
+            msg_warning(self.request, 'Sorry, the portfolio is not available '
+                                      'at this time.')
+        else:
+            projects = portfolio.projects.all()
+            context.update({'portfolio': portfolio, 'projects': projects})
         return context

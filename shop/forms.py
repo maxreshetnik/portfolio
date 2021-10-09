@@ -34,7 +34,7 @@ class CustomValidationImageFieldForm(ModelForm):
     def clean_image(self):
         file = self.cleaned_data['image']
         committed = getattr(file, '_committed', False)
-        return file if committed else _check_image_size(file)
+        return file if committed or file is None else _check_image_size(file)
 
 
 class CustomUserCreationForm(UserCreationForm):
