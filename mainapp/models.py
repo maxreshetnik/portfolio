@@ -14,7 +14,7 @@ class Portfolio(models.Model):
     last_name = models.CharField(max_length=30)
     email = models.EmailField()
     about = models.TextField()
-    photo = models.ImageField(upload_to='main/')
+    photo = models.ImageField(upload_to='mainapp/')
     tech_stack = models.TextField()
     tools = models.TextField()
     github = models.URLField(blank=True, verbose_name='GitHub')
@@ -40,7 +40,7 @@ class Project(models.Model):
     description = models.TextField()
     website = models.URLField(blank=True)
     code_source = models.URLField(blank=True)
-    image = models.ImageField(blank=True, upload_to='main/')
+    image = models.ImageField(blank=True, upload_to='mainapp/')
     date_added = models.DateField(auto_now_add=True)
     portfolio = models.ForeignKey(
         Portfolio, on_delete=models.CASCADE, related_name='projects',

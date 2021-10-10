@@ -12,13 +12,13 @@ class FeedbackCreate(SuccessMessageMixin, CreateView):
 
     model = Feedback
     fields = ['name', 'email', 'message', 'portfolio']
-    success_url = reverse_lazy('main:home')
+    success_url = reverse_lazy('mainapp:home')
     success_message = "Your message has been sent."
 
 
 class HomePageView(TemplateView):
 
-    template_name = 'main/base.html'
+    template_name = 'mainapp/base.html'
 
     def get(self, request, *args, **kwargs):
         FeedbackForm = modelform_factory(

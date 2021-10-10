@@ -17,7 +17,7 @@ except IOError:
 
 # Application definition
 
-AUTH_USER_MODEL = 'main.CustomUser'
+AUTH_USER_MODEL = 'mainapp.CustomUser'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'main',
+    'mainapp',
     'shop',
 ]
 
