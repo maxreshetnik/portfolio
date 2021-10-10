@@ -7,7 +7,7 @@ from .models import Portfolio, Project, Feedback
 
 class CustomUserAdmin(UserAdmin):
 
-    list_display = ['email', 'username', ]
+    list_display = ['username', 'email']
 
 
 admin.site.register(get_user_model(), CustomUserAdmin)
