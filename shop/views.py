@@ -87,7 +87,7 @@ class ShopView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         """
-        Receives and handles form data when user adds a product to cart.
+        Receives and handles form data when user adds a product to user cart.
 
         Saves the form if data is valid, creates order with
         cart status.
@@ -124,6 +124,10 @@ class ShopView(TemplateView):
         context['catalog'] = self.categories.filter(
             category__isnull=True,
         )
+        # scale for star rating filled and half filled.
+        context['rating_scale'] = [
+            (n - 0.2, n - 0.75) for n in Rate.PointValue.values
+        ]
         if 'form' not in kwargs:
             context['form'] = PartialOrderItemForm(auto_id=False)
         if not self.request.user.is_authenticated:
@@ -132,9 +136,6 @@ class ShopView(TemplateView):
         elif 'cart' not in kwargs:
             context['cart'] = {obj.specification_id: obj.quantity for
                                obj in self.get_cart_items()}
-            context['rating_scale'] = [
-                (n - 0.2, n - 0.75) for n in Rate.PointValue.values
-            ]
         return context
 
 
