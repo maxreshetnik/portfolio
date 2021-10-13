@@ -83,6 +83,19 @@ DATABASES = {
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+# Email smtp host
+
+EMAIL_HOST = SECRETS.get('email_host', 'localhost')
+
+EMAIL_HOST_PASSWORD = SECRETS.get('email_host_password', '')
+
+EMAIL_HOST_USER = SECRETS.get('email_host_user', '')
+
+EMAIL_PORT = SECRETS.get('email_port', 25)
+
+EMAIL_USE_TLS = True
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
@@ -119,7 +132,6 @@ SECRET_KEY = str(SECRETS['secret_key'])
 
 
 # URL and PATH
-
 LOGIN_URL = '/shop/account/login/'
 
 # Media files

@@ -12,9 +12,10 @@ def forward_feedback_msg(sender, **kwargs):
         feedback = kwargs['instance']
         send_mail(
             f'Feedback from {feedback.name}',
-            f'{feedback.message}\n\nFrom: {feedback.name}.',
+            (f'{feedback.message}\n\nName: {feedback.name}\n'
+             f'email: {feedback.email}'),
             feedback.email,
             [feedback.portfolio.email],
-            fail_silently=False,
+            fail_silently=True,
         )
     return sender
