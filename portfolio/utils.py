@@ -43,15 +43,15 @@ def clean_media(*ct_id, dir_name=None):
     the database are moved to a temp.
     """
     media_root = Path(settings.MEDIA_ROOT)
-    deleted_path = media_root.joinpath('deleted')
     queryset_list = get_filefield_values(*ct_id)
     for queryset in queryset_list:
         for names in queryset:
             move_media(*names)
     if dir_name is None:
         return
+    deleted_path = media_root.joinpath('deleted', dir_name)
     if not deleted_path.is_dir():
-        deleted_path.mkdir()
+        deleted_path.mkdir(parents=True)
     for file in media_root.joinpath(dir_name).iterdir():
         if file.is_file:
             file.rename(deleted_path.joinpath(file.name))

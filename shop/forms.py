@@ -6,35 +6,7 @@ from django.forms import ModelForm, ValidationError, HiddenInput
 from django.db import transaction, IntegrityError
 from django.db.models import Subquery, OuterRef, F, When, Case, Sum
 
-from .models import FILE_SIZE, IMG_SIZE, OrderItem, Order
-
-
-def _check_image_size(file):
-    """Checks uploaded image dimensions and a file size using
-    constants from models."""
-    b = 20 if FILE_SIZE[1].upper() == 'MB' else 10
-    img_width, img_height = file.image.size
-    if file.size > (FILE_SIZE[0] << b):
-        raise ValidationError(
-            'Uploaded file over {} {}.'.format(*FILE_SIZE)
-        )
-    if img_width < IMG_SIZE[0] or img_height < IMG_SIZE[1]:
-        raise ValidationError(
-            ('Image sizes are smaller than '
-             '{}x{} pixels.').format(*IMG_SIZE)
-        )
-    return file
-
-
-class CustomValidationImageFieldForm(ModelForm):
-    """
-    Defines an additional method for validating the image field for
-    administration site forms.
-    """
-    def clean_image(self):
-        file = self.cleaned_data['image']
-        committed = getattr(file, '_committed', False)
-        return file if committed or file is None else _check_image_size(file)
+from .models import OrderItem, Order
 
 
 class CustomUserCreationForm(UserCreationForm):

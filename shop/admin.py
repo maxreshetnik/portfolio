@@ -7,7 +7,6 @@ from . import models, forms
 
 class SpecificationInline(GenericStackedInline):
 
-    form = forms.CustomValidationImageFieldForm
     model = models.Specification
     extra = 0
 
@@ -47,13 +46,6 @@ class ShippingAddressInline(admin.StackedInline):
     extra = 0
 
 
-class RateInline(admin.StackedInline):
-
-    model = models.Rate
-    classes = ('collapse ',)
-    extra = 0
-
-
 class CategoryInline(admin.StackedInline):
 
     model = models.Category
@@ -72,7 +64,6 @@ class CategoryAdmin(admin.ModelAdmin):
                 models.ClothingProduct, models.FoodProduct)
 class ProductAdmin(admin.ModelAdmin):
 
-    form = forms.CustomValidationImageFieldForm
     inlines = [SpecificationInline]
     list_display = ['category', 'name', 'marking']
     list_select_related = ('category',)
@@ -102,7 +93,6 @@ class AccountAdmin(admin.ModelAdmin):
     inlines = [
         ShippingAddressInline,
         OrderInline,
-        RateInline,
     ]
     fields = ['username', 'email', 'first_name', 'last_name']
     list_display = ['username', 'email']
@@ -141,3 +131,10 @@ class OrderAdmin(admin.ModelAdmin):
                 else:
                     kwargs['status'] = order.CART
             qs.update(**kwargs)
+
+
+@admin.register(models.Rate)
+class RateAdmin(admin.ModelAdmin):
+
+    fields = (('user', 'point'), 'review', 'content_type', 'object_id')
+    list_display = ('user', 'point', 'content_object')
