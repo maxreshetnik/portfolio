@@ -12,7 +12,6 @@ FILE_SIZE = (3, 'MB')   # maximal file size 'MB' or 'KB' only
 
 def get_file_directory_path(instance, filename):
     obj_type = ContentType.objects.get_for_model(instance)
-    print(obj_type.app_label, obj_type.model)
     return f'{obj_type.app_label}/{filename}'
 
 
