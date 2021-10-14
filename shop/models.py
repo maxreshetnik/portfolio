@@ -1,45 +1,17 @@
-from io import BytesIO
 from decimal import Decimal
 
-from PIL import Image
 from django.db import models
 from django.urls import reverse
-from django.core.files.images import ImageFile, File
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import (MaxValueValidator, MinValueValidator,
+                                    validate_image_file_extension)
+
+from . import services
 
 
 USER = get_user_model()
-IMG_SIZE = (600, 600)   # minimal image sizes in pixels
-FILE_SIZE = (10, 'MB')   # maximal file size 'MB' or 'KB' only
-
-
-def file_directory_path():
-    pass
-
-
-def handle_image(obj):
-    """
-    Changes dimensions of an image to the dimensions in IMG_SIZE constant.
-
-    If an image is loaded, the function creates new image object and replaces old one.
-    """
-    if getattr(obj, '_committed', True) or not obj.name:
-        return
-    try:
-        with obj.open(), Image.open(obj) as img:
-            new_img = img.resize(IMG_SIZE, reducing_gap=3.0)
-            file = getattr(obj, '_file')
-            name = obj.name if not isinstance(file, File) else (
-                str(obj.name).rpartition('/')[2])
-            new_file = ImageFile(BytesIO(), name)
-            new_img.save(new_file, img.format)
-    except OSError:
-        return
-    setattr(obj, 'file', new_file)
-    setattr(obj, 'name', name)
 
 
 class Account(USER):
@@ -104,10 +76,12 @@ class Product(models.Model):
         max_length=40,
     )
     image = models.ImageField(
-        upload_to='shop/',
+        upload_to=services.get_file_directory_path,
         help_text=('Minimal image sizes is {}x{} pixels. '
-                   'Max upload file size up to '
-                   '{} {}.').format(*IMG_SIZE, *FILE_SIZE)
+                   'Max upload file size up to {} {}.'
+                   '').format(*services.IMG_SIZE, *services.FILE_SIZE),
+        validators=[validate_image_file_extension,
+                    services.validate_image_size],
     )
     description = models.TextField(blank=True)
     unit = models.CharField(
@@ -133,7 +107,7 @@ class Product(models.Model):
 
     def save(self, *args, **kwargs):
         """Extends save method, resizes the loaded image"""
-        handle_image(getattr(self, 'image'))
+        services.handle_image_size(getattr(self, 'image'))
         super().save(*args, **kwargs)
 
 
@@ -150,10 +124,12 @@ class Specification(models.Model):
     """
     tag = models.CharField(max_length=20, blank=True)
     image = models.ImageField(
-        upload_to='shop/', blank=True,
+        upload_to=services.get_file_directory_path, blank=True,
         help_text=('Minimal image sizes is {}x{} pixels. '
-                   'Max upload file size up to '
-                   '{} {}.').format(*IMG_SIZE, *FILE_SIZE),
+                   'Max upload file size up to {} {}.'
+                   '').format(*services.IMG_SIZE, *services.FILE_SIZE),
+        validators=[validate_image_file_extension,
+                    services.validate_image_size],
     )
     pre_packing = models.DecimalField(
         max_digits=6, decimal_places=3, default='1',
@@ -208,7 +184,7 @@ class Specification(models.Model):
         """Extends save method, resizes an image and calculates
         a value for the discount_price field.
         """
-        handle_image(getattr(self, 'image'))
+        services.handle_image_size(getattr(self, 'image'))
         self.discount_price = self.price - (
                 self.price * self.discount / 100
         ).quantize(self.price)
@@ -353,7 +329,7 @@ class Rate(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.point} from {self.user} to {self.content_object}'
+        return f'{self.user} {self.point} to {self.content_object}'
 
 
 class TvProduct(Product):
