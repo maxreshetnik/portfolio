@@ -1,6 +1,8 @@
 from .common import *
 
 
+ADMINS = SECRETS.get('admins', [])
+
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost'] + SECRETS.get('allowed_hosts', [])
 
 CSRF_COOKIE_SECURE = True
