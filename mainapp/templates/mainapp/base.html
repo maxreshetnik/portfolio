@@ -35,7 +35,7 @@
                     {% endfor %}
                 </div>
                 {% endif %}
-                <a class="navbar-brand" href="#page-top">Portfolio</a>
+                <a class="navbar-brand" href="{% url 'mainapp:home' %}">Portfolio</a>
                 <a href="{{ portfolio.github }}" class="nav-link link-secondary text-center pb-1">
                     <i class="bi-github me-1"></i>GitHub
                 </a>
@@ -107,7 +107,7 @@
             <div class="container px-4 px-lg-5 pt-5">
                 <div class="row justify-content-center pb-3 mb-5">
                     <h3 class="col-12 text-center font-weight-light py-2 mb-4">Send me a Message</h3>
-                    <form novalidate class="col-md-8 col-xl-7" method="post" action="{% url 'mainapp:home' %}">
+                    <form novalidate class="col-md-8 col-xl-7" method="post" action="{% url 'mainapp:feedback' %}">
                         {% csrf_token %}
                         <input type="hidden" name="{{ form.portfolio.html_name }}" value="{{ portfolio.id }}" required>
                         <div class="row g-3">

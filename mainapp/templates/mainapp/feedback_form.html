@@ -40,5 +40,5 @@
 
 {% block footer %}
 {{ block.super }}
-<script>window.location.hash = 'contact';</script>
+{% if form.errors %}<script>window.location.hash = 'contact';</script>{% endif %}
 {% endblock footer %}
