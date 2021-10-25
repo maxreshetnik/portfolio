@@ -1,0 +1,12 @@
+{% extends "shop/specs_by_category.html" %}
+
+{% block title %}
+<title>Product search - Shop</title>
+{% endblock %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb ms-lg-4 ps-4">
+    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Search</li>
+</ol>
+{% endblock %}

@@ -1,23 +1,31 @@
 from decimal import Decimal
 
-from django.urls import reverse, reverse_lazy
+from django.db.models import (
+    Prefetch, FilteredRelation, Q, Subquery, OuterRef, Count,
+    Avg, F, When, Case, prefetch_related_objects,
+)
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.forms import (
+    AuthenticationForm, SetPasswordForm,
+)
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.search import (
+    SearchQuery, SearchRank, SearchVector,
+)
 from django.http import Http404, HttpResponseRedirect
-from django.utils import timezone
 from django.views.generic import TemplateView
 from django.views.generic.edit import DeletionMixin
 from django.views.generic.list import MultipleObjectMixin
 from django.views.generic.detail import SingleObjectMixin
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.views import LoginView
-from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
-from django.contrib import messages
-from django.db.models import (Prefetch, FilteredRelation, Q, Subquery,
-                              OuterRef, Count, Avg, F, When, Case,
-                              prefetch_related_objects)
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 
-from .models import Category, Specification, Rate, Order, OrderItem
-from .signals import available_qty_handler
+from .models import (
+    Category, Specification, Rate, Order, OrderItem,
+)
+from .services import available_qty_handler
 from .forms import (CustomUserCreationForm, CustomUserChangeForm,
                     PartialOrderItemForm, PartialOrderForm)
 
@@ -50,7 +58,7 @@ def _get_product_subquery(ct_id):
     return Subquery(products.order_by().values('category__name'))
 
 
-def _get_specs(queryset=None, ct_id=None):
+def get_specs(queryset=None, ct_id=None):
     """
     Returns an annotated and product prefetched specification queryset,
     filters if ContentType id of product model is passed.
@@ -147,8 +155,103 @@ class HomePageView(ShopView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['spec_list'] = _get_specs().order_by('-id')[:4]
+        context['spec_list'] = get_specs().order_by('-id')[:4]
         return context
+
+
+def get_products_search_rank(query, ct_obj):
+    """Ranks products by search text"""
+    model = ct_obj.model_class()
+    vector = SearchVector('name', 'marking')
+    qs = model.objects.annotate(
+        rank=SearchRank(vector, query),
+    )
+    return qs
+
+
+def get_specs_search_rank(query, ct_obj):
+    """Ranks specifications by search text"""
+    vector_prod = SearchVector('name', 'marking')
+    vector = SearchVector('category_name', 'tag')
+    model = ct_obj.model_class()
+    prod_subquery = Subquery(model.objects.annotate(
+        rank=SearchRank(vector_prod, query),
+    ).filter(id=OuterRef('object_id')).order_by().values('rank'))
+    qs = get_specs(ct_id=ct_obj.id).annotate(
+        rank_prod=prod_subquery, rank_spec=SearchRank(vector, query),
+        rank=F('rank_prod') + F('rank_spec'),
+    )
+    return qs
+
+
+def search_in_products(query):
+    """Searches for the query text in all product models
+    and filters by rank."""
+    rank = 0
+    ct_list = list(ContentType.objects.filter(model__iendswith='product'))
+    qs = get_specs_search_rank(query, ct_list.pop()).filter(rank__gt=rank)
+    for ct_obj in ct_list:
+        products = get_products_search_rank(query, ct_obj)
+        if products.filter(rank__gt=rank).exists():
+            qs = qs.union(
+                get_specs_search_rank(query, ct_obj).filter(rank__gt=rank),
+            )
+    return qs
+
+
+def search_in_category(query, category):
+    """Searches for the query text for products
+    in a specific category."""
+    ct_obj = category.content_type
+    c_names = [category.name] + [c.name for c in category.subcategories]
+    qs = get_specs_search_rank(query, ct_obj)
+    qs = qs.filter(category_name__in=c_names)
+    for sub in category.subcategories:
+        if sub.content_type_id != category.content_type_id:
+            qs_other = get_specs_search_rank(query, sub.content_type)
+            qs = qs.union(qs_other.filter(category_name__in=c_names))
+    return qs
+
+
+class SearchView(MultipleObjectMixin, ShopView):
+    """
+    Display a paginated list of products for a search query.
+
+    Uses full-text search, first searches for matches in category names
+    to narrow down the search, then for all product models.
+    """
+    template_name = 'shop/search.html'
+    context_object_name = 'spec_list'
+    q = []
+    object_list = None
+    paginate_by = 2
+
+    def get(self, request, *args, **kwargs):
+        q_string = request.GET.get('q', '')
+        self.q = q_string.split()
+        self.object_list = self.get_queryset()
+        context = self.get_context_data(q=q_string, **kwargs)
+        context['url_keys'] = f'&q={"+".join(self.q)}'
+        context['empty_msg'] = (f'No products were found for '
+                                f'"{q_string}".')
+        return self.render_to_response(context)
+
+    def get_queryset(self):
+        if not self.q:
+            return Specification.objects.none()
+        query = SearchQuery(self.q[0])
+        for s in self.q[1:]:
+            query |= SearchQuery(s)
+        vector = SearchVector('name')
+        try:
+            category = self.categories.annotate(
+                rank=SearchRank(vector, query),
+            ).filter(rank__gt=0).order_by('-rank')[0]
+        except IndexError:
+            qs = search_in_products(query)
+        else:
+            qs = search_in_category(query, category)
+        return qs.order_by('-rank')
 
 
 class CategorySpecList(MultipleObjectMixin, ShopView):
@@ -183,14 +286,14 @@ class CategorySpecList(MultipleObjectMixin, ShopView):
         ordering = self.get_ordering()
         category = self.get_category()
         ct_id = category.content_type_id
-        queryset = _get_specs(self.queryset, ct_id)
+        queryset = get_specs(self.queryset, ct_id)
         if not category.subcategories:
             self.kwargs['category'] = category.category
             queryset = queryset.filter(category_name=category.name)
             return queryset.order_by(*ordering)
         for sub in category.subcategories:
             if sub.content_type_id != ct_id:
-                qs = _get_specs(self.queryset, sub.content_type_id)
+                qs = get_specs(self.queryset, sub.content_type_id)
                 queryset = queryset.union(qs)
         self.kwargs['category'] = category
         return queryset.order_by(*ordering)
@@ -244,7 +347,7 @@ class SpecificationDetail(SingleObjectMixin, ShopView):
 
     def get_queryset(self):
         queryset = Specification.objects.filter(pk=self.kwargs['pk'])
-        return _get_specs(queryset)
+        return get_specs(queryset)
 
     def get_template_names(self):
         ct_id = getattr(self.object, 'content_type_id', '')
@@ -414,6 +517,12 @@ class OrderDetailView(SingleObjectMixin, AccountView):
         return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
+        """
+        Changes the user's order status to confirmed or canceled.
+
+        If the order has not been shipped, the available quantity of
+        each product is increased.
+        """
         self.object = self.get_object()
         if self.object.status < self.object.SHIPPING:
             available_qty_handler(self.object)

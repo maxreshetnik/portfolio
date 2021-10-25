@@ -1,12 +1,11 @@
 from decimal import Decimal
 
 from django.db import models
-from django.urls import reverse
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from django.core.validators import (MaxValueValidator, MinValueValidator,
-                                    validate_image_file_extension)
+from django.contrib.contenttypes.models import ContentType
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.urls import reverse
 
 from . import services
 
@@ -35,7 +34,9 @@ class Category(models.Model):
     )
     category = models.ForeignKey(
         'self', on_delete=models.SET_NULL, null=True,
-        blank=True, related_name='categories',
+        blank=True, verbose_name='parent category',
+        related_name='categories',
+        limit_choices_to={'category__isnull': True},
     )
     content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE,
@@ -80,8 +81,7 @@ class Product(models.Model):
         help_text=('Minimal image sizes is {}x{} pixels. '
                    'Max upload file size up to {} {}.'
                    '').format(*services.IMG_SIZE, *services.FILE_SIZE),
-        validators=[validate_image_file_extension,
-                    services.validate_image_size],
+        validators=[services.validate_image_size],
     )
     description = models.TextField(blank=True)
     unit = models.CharField(
@@ -128,8 +128,7 @@ class Specification(models.Model):
         help_text=('Minimal image sizes is {}x{} pixels. '
                    'Max upload file size up to {} {}.'
                    '').format(*services.IMG_SIZE, *services.FILE_SIZE),
-        validators=[validate_image_file_extension,
-                    services.validate_image_size],
+        validators=[services.validate_image_size],
     )
     pre_packing = models.DecimalField(
         max_digits=6, decimal_places=3, default='1',

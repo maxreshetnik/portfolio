@@ -46,22 +46,14 @@ class ShippingAddressInline(admin.StackedInline):
     extra = 0
 
 
-class CategoryInline(admin.StackedInline):
-
-    model = models.Category
-    extra = 0
-
-
 @admin.register(models.Category)
 class CategoryAdmin(admin.ModelAdmin):
 
-    inlines = [CategoryInline]
     list_display = ['name', 'category', 'content_type']
     fields = ['content_type', 'category', 'name']
 
 
-@admin.register(models.TvProduct, models.SmartphoneProduct,
-                models.ClothingProduct, models.FoodProduct)
+@admin.register(*models.Product.__subclasses__())
 class ProductAdmin(admin.ModelAdmin):
 
     inlines = [SpecificationInline]

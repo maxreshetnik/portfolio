@@ -72,5 +72,7 @@
             </div>
         </div>
     </div>
+    {% empty %}
+    {% block no_specs %}{{ empty_msg }}{% endblock %}
     {% endfor %}
 </div>
