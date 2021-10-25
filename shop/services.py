@@ -1,9 +1,10 @@
 from io import BytesIO
 from PIL import Image
 
+from django.db.models import F
 from django.contrib.contenttypes.models import ContentType
-from django.core.files.images import ImageFile, File
 from django.core.exceptions import ValidationError
+from django.core.files.images import ImageFile, File
 
 
 IMG_SIZE = (600, 600)   # minimal image sizes in pixels
@@ -49,3 +50,16 @@ def validate_image_size(file):
         if file.width < IMG_SIZE[0] or file.height < IMG_SIZE[1]:
             raise ValidationError(f'Image sizes are smaller than '
                                   f'{IMG_SIZE[0]}x{IMG_SIZE[1]} pixels.')
+
+
+def available_qty_handler(order):
+    """increase the available product quantity by the quantity
+    from the reserved order."""
+    if order.reserved:
+        items = order.specs.through.objects.select_related(
+            'specification',
+        ).filter(order_id=order.id)
+        for item in items:
+            spec = item.specification
+            spec.available_qty = F('available_qty') + item.quantity
+            spec.save()
