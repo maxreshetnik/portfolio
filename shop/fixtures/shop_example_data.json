@@ -1,0 +1,448 @@
+[
+{
+  "model": "shop.category",
+  "pk": 13,
+  "fields": {
+    "name": "Electronics",
+    "category": null,
+    "content_type": [
+      "shop",
+      "smartphoneproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 14,
+  "fields": {
+    "name": "Foodstuffs",
+    "category": null,
+    "content_type": [
+      "shop",
+      "foodproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 15,
+  "fields": {
+    "name": "Clothing",
+    "category": null,
+    "content_type": [
+      "shop",
+      "clothingproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 16,
+  "fields": {
+    "name": "TV",
+    "category": 13,
+    "content_type": [
+      "shop",
+      "tvproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 17,
+  "fields": {
+    "name": "Smartphone",
+    "category": 13,
+    "content_type": [
+      "shop",
+      "smartphoneproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 18,
+  "fields": {
+    "name": "Water",
+    "category": 14,
+    "content_type": [
+      "shop",
+      "foodproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 19,
+  "fields": {
+    "name": "Chocolate",
+    "category": 14,
+    "content_type": [
+      "shop",
+      "foodproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 20,
+  "fields": {
+    "name": "Tomato",
+    "category": 14,
+    "content_type": [
+      "shop",
+      "foodproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 21,
+  "fields": {
+    "name": "Hoodie",
+    "category": 15,
+    "content_type": [
+      "shop",
+      "clothingproduct"
+    ]
+  }
+},
+{
+  "model": "shop.category",
+  "pk": 22,
+  "fields": {
+    "name": "T-shirt",
+    "category": 15,
+    "content_type": [
+      "shop",
+      "clothingproduct"
+    ]
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 1,
+  "fields": {
+    "tag": "32\"",
+    "image": "shop/dark_grey.png",
+    "pre_packing": "1.000",
+    "weight_vol": "5.350",
+    "price": "249.99",
+    "discount": 0,
+    "discount_price": "249.99",
+    "sale_price": "0.00",
+    "available_qty": "100.000",
+    "addition": "code 123.541",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "tvproduct"
+    ],
+    "object_id": 1
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 4,
+  "fields": {
+    "tag": "4GB / 64GB",
+    "image": "shop/turquoise.png",
+    "pre_packing": "1.000",
+    "weight_vol": "0.350",
+    "price": "300.00",
+    "discount": 0,
+    "discount_price": "300.00",
+    "sale_price": "0.00",
+    "available_qty": "200.000",
+    "addition": "code 145.545",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "smartphoneproduct"
+    ],
+    "object_id": 1
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 6,
+  "fields": {
+    "tag": "1kg",
+    "image": "shop/Orange.png",
+    "pre_packing": "0.700",
+    "weight_vol": "1.000",
+    "price": "2.00",
+    "discount": 0,
+    "discount_price": "2.00",
+    "sale_price": "0.00",
+    "available_qty": "70.000",
+    "addition": "",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "foodproduct"
+    ],
+    "object_id": 1
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 7,
+  "fields": {
+    "tag": "0.5L",
+    "image": "shop/Blue_8yKacf6_FfFXSwY_gSvdgNT.png",
+    "pre_packing": "1.000",
+    "weight_vol": "0.500",
+    "price": "0.70",
+    "discount": 0,
+    "discount_price": "0.70",
+    "sale_price": "0.00",
+    "available_qty": "400.000",
+    "addition": "",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "foodproduct"
+    ],
+    "object_id": 2
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 8,
+  "fields": {
+    "tag": "100g",
+    "image": "shop/Brown_wrrmAS4_o78LqSm.png",
+    "pre_packing": "1.000",
+    "weight_vol": "0.100",
+    "price": "1.10",
+    "discount": 0,
+    "discount_price": "1.10",
+    "sale_price": "0.00",
+    "available_qty": "100.000",
+    "addition": "",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "foodproduct"
+    ],
+    "object_id": 3
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 9,
+  "fields": {
+    "tag": "gray",
+    "image": "shop/Gray_fy5YidI_tI08bmC_G76nJLl.png",
+    "pre_packing": "1.000",
+    "weight_vol": "1.200",
+    "price": "30.00",
+    "discount": 10,
+    "discount_price": "27.00",
+    "sale_price": "0.00",
+    "available_qty": "81.000",
+    "addition": "",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "clothingproduct"
+    ],
+    "object_id": 1
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 10,
+  "fields": {
+    "tag": "navy",
+    "image": "shop/Navy_rntoa2b_uDt3fkJ_deO4mhD.png",
+    "pre_packing": "1.000",
+    "weight_vol": "1.200",
+    "price": "28.00",
+    "discount": 0,
+    "discount_price": "28.00",
+    "sale_price": "0.00",
+    "available_qty": "40.000",
+    "addition": "",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "clothingproduct"
+    ],
+    "object_id": 1
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 11,
+  "fields": {
+    "tag": "blue",
+    "image": "shop/Blue_O5qPRfv.png",
+    "pre_packing": "1.000",
+    "weight_vol": "0.300",
+    "price": "11.00",
+    "discount": 10,
+    "discount_price": "9.90",
+    "sale_price": "7.99",
+    "available_qty": "50.000",
+    "addition": "",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "clothingproduct"
+    ],
+    "object_id": 2
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 12,
+  "fields": {
+    "tag": "orange",
+    "image": "shop/Orange_gLSQTrC.png",
+    "pre_packing": "1.000",
+    "weight_vol": "0.300",
+    "price": "9.00",
+    "discount": 0,
+    "discount_price": "9.00",
+    "sale_price": "0.00",
+    "available_qty": "0.000",
+    "addition": "",
+    "date_added": "2021-06-28",
+    "content_type": [
+      "shop",
+      "clothingproduct"
+    ],
+    "object_id": 2
+  }
+},
+{
+  "model": "shop.specification",
+  "pk": 14,
+  "fields": {
+    "tag": "6GB / 128GB",
+    "image": "",
+    "pre_packing": "1.000",
+    "weight_vol": "0.350",
+    "price": "370.00",
+    "discount": 10,
+    "discount_price": "333.00",
+    "sale_price": "0.00",
+    "available_qty": "90.000",
+    "addition": "code 145.546",
+    "date_added": "2021-07-13",
+    "content_type": [
+      "shop",
+      "smartphoneproduct"
+    ],
+    "object_id": 1
+  }
+},
+{
+  "model": "shop.tvproduct",
+  "pk": 1,
+  "fields": {
+    "name": "Samsung",
+    "marking": "32LED1080",
+    "image": "shop/test_600.png",
+    "description": "Smart TV\r\nLED",
+    "unit": "PC",
+    "unit_for_weight_vol": "KG",
+    "date_added": "2021-06-03",
+    "category": 16,
+    "screen_diagonal": "32\"",
+    "screen_resolution": "1920x1080"
+  }
+},
+{
+  "model": "shop.smartphoneproduct",
+  "pk": 1,
+  "fields": {
+    "name": "Samsung",
+    "marking": "Mi 10",
+    "image": "shop/600x600_OX1io4i.png",
+    "description": "Android 10",
+    "unit": "PC",
+    "unit_for_weight_vol": "KG",
+    "date_added": "2021-06-04",
+    "category": 17,
+    "ram": "4GB / 6GB",
+    "memory": "64GB/128GB"
+  }
+},
+{
+  "model": "shop.clothingproduct",
+  "pk": 1,
+  "fields": {
+    "name": "Another Brand",
+    "marking": "zip up",
+    "image": "shop/test_600_b2j2LDW.png",
+    "description": "Hoodie \"Any Brand\"  zip up",
+    "unit": "PC",
+    "unit_for_weight_vol": "KG",
+    "date_added": "2021-06-04",
+    "category": 21,
+    "type": "M",
+    "size": "L"
+  }
+},
+{
+  "model": "shop.clothingproduct",
+  "pk": 2,
+  "fields": {
+    "name": "Tommy Brand",
+    "marking": "crew neck",
+    "image": "shop/600x600_ir4QPCN.png",
+    "description": "100% Cotton",
+    "unit": "PC",
+    "unit_for_weight_vol": "KG",
+    "date_added": "2021-06-04",
+    "category": 22,
+    "type": "M",
+    "size": "L"
+  }
+},
+{
+  "model": "shop.foodproduct",
+  "pk": 1,
+  "fields": {
+    "name": "Best",
+    "marking": "Tomato",
+    "image": "shop/test_600_59xcn54.png",
+    "description": "",
+    "unit": "KG",
+    "unit_for_weight_vol": "KG",
+    "date_added": "2021-06-04",
+    "category": 20
+  }
+},
+{
+  "model": "shop.foodproduct",
+  "pk": 2,
+  "fields": {
+    "name": "Any",
+    "marking": "non-carbonated",
+    "image": "shop/test_600_2dl1MHq.png",
+    "description": "Water \"Any\" non-carbonated 0.5L.",
+    "unit": "BTL",
+    "unit_for_weight_vol": "L",
+    "date_added": "2021-06-04",
+    "category": 18
+  }
+},
+{
+  "model": "shop.foodproduct",
+  "pk": 3,
+  "fields": {
+    "name": "Delicious",
+    "marking": "milk",
+    "image": "shop/test_600_7Y3uAFz.png",
+    "description": "Chocolate \"Delicious\" milk 100g.",
+    "unit": "PC",
+    "unit_for_weight_vol": "KG",
+    "date_added": "2021-06-04",
+    "category": 19
+  }
+}
+]

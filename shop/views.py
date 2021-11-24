@@ -350,8 +350,9 @@ class SpecificationDetail(SingleObjectMixin, ShopView):
         return get_specs(queryset)
 
     def get_template_names(self):
-        ct_id = getattr(self.object, 'content_type_id', '')
-        return [f'shop/spec_detail/spec{ct_id}.html']
+        t_names = super().get_template_names()
+        model_name = self.object.content_type.model
+        return [f'shop/spec_detail/spec_{model_name}.html'] + t_names
 
     def get_context_data(self, **kwargs):
         self.object = self.get_object()

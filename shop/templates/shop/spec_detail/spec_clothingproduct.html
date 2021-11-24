@@ -1,7 +1,7 @@
 
 {% extends spec_template_name %}
 {% load verbose_names %}
-<!-- Clothing -->
+<!-- Clothing details -->
 {% block details %}
 <div class="col-5">{% verbose_name spec.product "size" %}</div>
 <div class="col-3">{{ spec.product.get_size_display }}</div>
