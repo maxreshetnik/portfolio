@@ -44,7 +44,7 @@ class CreateAccountView(LoginView):
         return super().form_valid(form)
 
 
-def _get_rate_subquery():
+def get_rate_subquery():
     rates = Rate.objects.filter(
         content_type_id=OuterRef('content_type_id'),
         object_id=OuterRef('object_id'),
@@ -52,7 +52,7 @@ def _get_rate_subquery():
     return Subquery(rates.values('point__avg'))
 
 
-def _get_product_subquery(ct_id):
+def get_product_subquery(ct_id):
     model = ContentType.objects.get_for_id(ct_id).model_class()
     products = model.objects.filter(id=OuterRef('object_id'))
     return Subquery(products.order_by().values('category__name'))
@@ -66,9 +66,9 @@ def get_specs(queryset=None, ct_id=None):
     queryset = queryset if queryset is not None else (
         Specification.objects.filter(available_qty__gt=0)
     )
-    rate_subquery = _get_rate_subquery()
+    rate_subquery = get_rate_subquery()
     if ct_id is not None:
-        product_subquery = _get_product_subquery(ct_id)
+        product_subquery = get_product_subquery(ct_id)
         queryset = queryset.filter(
             content_type_id=ct_id,
         ).annotate(category_name=product_subquery)
@@ -152,14 +152,16 @@ class HomePageView(ShopView):
     Display the latest products on the home page.
     """
     template_name = 'shop/home.html'
+    number_of_specs = 4
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['spec_list'] = get_specs().order_by('-id')[:4]
+        spec_qs = get_specs().order_by('-id')
+        context['spec_list'] = spec_qs[:self.number_of_specs]
         return context
 
 
-def get_products_search_rank(query, ct_obj):
+def get_products_search_rank(query: SearchQuery, ct_obj: ContentType):
     """Ranks products by search text"""
     model = ct_obj.model_class()
     vector = SearchVector('name', 'marking')
@@ -169,7 +171,7 @@ def get_products_search_rank(query, ct_obj):
     return qs
 
 
-def get_specs_search_rank(query, ct_obj):
+def get_specs_search_rank(query: SearchQuery, ct_obj: ContentType):
     """Ranks specifications by search text"""
     vector_prod = SearchVector('name', 'marking')
     vector = SearchVector('category_name', 'tag')
@@ -184,7 +186,7 @@ def get_specs_search_rank(query, ct_obj):
     return qs
 
 
-def search_in_products(query):
+def search_in_products(query: SearchQuery):
     """Searches for the query text in all product models
     and filters by rank."""
     rank = 0
@@ -199,7 +201,7 @@ def search_in_products(query):
     return qs
 
 
-def search_in_category(query, category):
+def search_in_category(query: SearchQuery, category):
     """Searches for the query text for products
     in a specific category."""
     ct_obj = category.content_type
@@ -224,7 +226,7 @@ class SearchView(MultipleObjectMixin, ShopView):
     context_object_name = 'spec_list'
     q = []
     object_list = None
-    paginate_by = 2
+    paginate_by = 20
 
     def get(self, request, *args, **kwargs):
         q_string = request.GET.get('q', '')
