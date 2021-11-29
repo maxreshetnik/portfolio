@@ -98,11 +98,23 @@ class HomePageViewTests(TestCase):
             {spec.id: defaults['quantity']},
         )
 
-    def test_add_to_cart(self):
+    def test_add_to_cart_for_anonymous_user(self):
         """
         Only a logged-in user can add products to his cart,
-        change the quantity and remove products from the cart,
-        changing the quantity to zero.
+        anonymous users will be redirected to the login page.
+        """
+        spec = self.specs[0]
+        data = {'specification': spec.id,
+                'quantity': spec.pre_packing}
+        response = self.client.post(reverse('shop:home'), data=data)
+        self.assertRedirects(
+            response, f'{reverse("shop:login")}?next={reverse("shop:home")}'
+        )
+
+    def test_add_to_cart(self):
+        """
+        Logged-in user can add items to his cart and change the quantity,
+        changing the quantity to zero remove an item from the cart.
         """
         spec_list = list(self.specs[:2])
         self.assertEqual(len(spec_list), 2, msg='No specs in test db')
@@ -110,10 +122,6 @@ class HomePageViewTests(TestCase):
                  'quantity': spec_list[0].pre_packing}
         spec2 = {'specification': spec_list[1].id,
                  'quantity': spec_list[1].pre_packing}
-        response = self.client.post(reverse('shop:home'), data=spec1)
-        self.assertRedirects(
-            response, f'{reverse("shop:login")}?next={reverse("shop:home")}'
-        )
         self.assertTrue(
             self.client.login(username=self.username, password=self.passwd)
         )
@@ -175,9 +183,10 @@ class SearchViewTests(TestCase):
 
     fixtures = ['shop_example_data.json']
 
-    def test_category_search_result(self):
+    def test_parent_category_search_result(self):
         """
-        Returns products with a category name in a user search query.
+        Returns all products from the parent category whose name
+        was specified in the user search query.
         """
         category = Category.objects.filter(
             category__isnull=True,
@@ -186,35 +195,68 @@ class SearchViewTests(TestCase):
         category_names = list(
             category.categories.order_by().values_list('name', flat=True)
         ) + [category.name]
-        # Test if parent category in search query
         response = self.client.get(
             reverse('shop:search'), {'q': category_names[-1]},
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         for spec in response.context[views.SearchView.context_object_name]:
             self.assertIn(spec.category_name, category_names)
-        # Test if subcategory in search query
-        response = self.client.get(
-            reverse('shop:search'), {'q': category_names[0]},
-        )
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-        for spec in response.context[views.SearchView.context_object_name]:
-            self.assertEqual(spec.category_name, category_names[0])
 
-    def test_product_search_result(self):
+    def test_category_search_result(self):
         """
-        Returns the products that best match the user search query.
+        Returns all products from the category whose name
+        was specified in the user search query.
         """
         spec = Specification.objects.filter(
             available_qty__gt=0,
         ).last()
-        product = spec.content_object
         self.assertIsNotNone(spec, msg='No spec in test db')
+        category = spec.content_object.category
+        response = self.client.get(
+            reverse('shop:search'), {'q': category.name},
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        for spec in response.context[views.SearchView.context_object_name]:
+            self.assertEqual(spec.category_name, category.name)
+
+    def test_category_and_product_search_result(self):
+        """
+        Returns the product that was specified in the user search query.
+        """
+        spec = Specification.objects.filter(
+            available_qty__gt=0,
+        ).last()
+        self.assertIsNotNone(spec, msg='No spec in test db')
+        product = spec.content_object
         q = (f'{product.category.name} {product.name} '
-             f'{product.marking} {spec.tag}')
+             f'{product.marking}')
         response = self.client.get(reverse('shop:search'), {'q': q})
         self.assertEqual(response.status_code, HTTPStatus.OK)
         spec_list = list(response.context[views.SearchView.context_object_name])
-        self.assertTrue(spec_list)
-        self.assertEqual(spec_list[0].id, spec.id)
-        self.assertGreaterEqual(len(spec_list), product.specs.count())
+        self.assertTrue(spec_list, msg='The search did not find any products.')
+        self.assertEqual(
+            spec_list[0].object_id, product.id,
+            msg=(f'"{product}" should come first on the list as best matching'
+                 f'the query "{q}". Results: {", ".join(map(str, spec_list))}'),
+        )
+
+    def test_product_search_result(self):
+        """
+        Returns the products that best match the user search query
+        without specifying a category.
+        """
+        spec = Specification.objects.filter(
+            available_qty__gt=0,
+        ).last()
+        self.assertIsNotNone(spec, msg='No spec in test db')
+        product = spec.content_object
+        q = f'{product.name} {product.marking} {spec.tag}'
+        response = self.client.get(reverse('shop:search'), {'q': q})
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        spec_list = list(response.context[views.SearchView.context_object_name])
+        self.assertTrue(spec_list, msg='The search did not find any products.')
+        self.assertEqual(
+            spec_list[0].id, spec.id,
+            msg=(f'"{spec}" should come first on the list as best matching'
+                 f'the query "{q}". Results: {", ".join(map(str, spec_list))}'),
+        )
