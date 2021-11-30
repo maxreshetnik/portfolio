@@ -1,4 +1,3 @@
-from decimal import Decimal
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
@@ -46,6 +45,9 @@ class HomePageViewTests(TestCase):
         cls.user = User.objects.create_user(
             username=cls.username, password=cls.passwd,
         )
+        cls.cart_order = Order.objects.create(
+            user=cls.user, status=Order.CART,
+        )
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -84,19 +86,15 @@ class HomePageViewTests(TestCase):
         self.request.user = self.user
         response = views.HomePageView.as_view()(self.request)
         self.assertIn('cart', response.context_data)
-        # If there are no specs in the cart
+        # If there are no items in the cart
         self.assertFalse(response.context_data['cart'])
-        # A user cart is an order with a cart status.
-        order = Order.objects.create(
-            user=self.user, status=Order.CART
-        )
-        defaults = {'quantity': Decimal('1'), 'price': spec.price}
-        order.specs.add(spec, through_defaults=defaults)
+        defaults = {'quantity': spec.pre_packing, 'price': spec.price}
+        # A user cart is the Order model with a cart status.
+        self.cart_order.specs.add(spec, through_defaults=defaults)
         response = views.HomePageView.as_view()(self.request)
-        self.assertDictEqual(
-            response.context_data['cart'],
-            {spec.id: defaults['quantity']},
-        )
+        self.assertIsInstance(response.context_data['cart'], dict)
+        self.assertIn((spec.id, defaults['quantity']),
+                      response.context_data['cart'].items())
 
     def test_add_to_cart_for_anonymous_user(self):
         """
@@ -111,35 +109,56 @@ class HomePageViewTests(TestCase):
             response, f'{reverse("shop:login")}?next={reverse("shop:home")}'
         )
 
-    def test_add_to_cart(self):
-        """
-        Logged-in user can add items to his cart and change the quantity,
-        changing the quantity to zero remove an item from the cart.
-        """
-        spec_list = list(self.specs[:2])
-        self.assertEqual(len(spec_list), 2, msg='No specs in test db')
-        spec1 = {'specification': spec_list[0].id,
-                 'quantity': spec_list[0].pre_packing}
-        spec2 = {'specification': spec_list[1].id,
-                 'quantity': spec_list[1].pre_packing}
-        self.assertTrue(
-            self.client.login(username=self.username, password=self.passwd)
+    def test_add_item_to_cart(self):
+        """Logged-in user add items to his cart."""
+        n = 2
+        spec_list = list(self.specs[:n])
+        self.assertGreaterEqual(
+            len(spec_list), n, msg=f'Less than {n} specs in test db.',
         )
-        # Test of adding and changing the quantity in the cart.
-        for _ in range(2):
-            response = self.client.post(reverse('shop:home'), data=spec1)
-            self.assertEqual(response.status_code, HTTPStatus.OK)
-            self.assertEqual(len(response.context['cart']), 1)
-            self.assertEqual(response.context['cart'][spec_list[0].id],
-                             spec1['quantity'])
-            spec1['quantity'] += spec_list[0].pre_packing
-        # Test for adding another item to the cart and then removing it.
-        response = self.client.post(reverse('shop:home'), data=spec2)
-        self.assertEqual(len(response.context['cart']), 2)
-        spec2['quantity'] = 0
-        response = self.client.post(reverse('shop:home'), data=spec2)
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('shop:home'))
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertEqual(len(response.context['cart']), 1)
+        num_in_cart = len(response.context['cart'])
+        for spec in spec_list:
+            num_in_cart += 1
+            response = self.client.post(
+                reverse('shop:home'),
+                data={'specification': spec.id, 'quantity': spec.pre_packing},
+            )
+            self.assertEqual(response.status_code, HTTPStatus.OK)
+            self.assertIn(spec.id, response.context['cart'])
+            self.assertEqual(
+                len(response.context['cart']), num_in_cart,
+                msg=f'The number of items is not equal to {num_in_cart}.'
+            )
+
+    def test_change_cart_item_qty(self):
+        """Change the item quantity in user cart."""
+        spec = self.specs[0]
+        qty = spec.pre_packing
+        defaults = {'quantity': qty, 'price': spec.price}
+        # A user cart is the Order model with a cart status.
+        self.cart_order.specs.add(spec, through_defaults=defaults)
+        self.client.force_login(self.user)
+        data = {'specification': spec.id, 'quantity': qty + spec.pre_packing}
+        response = self.client.post(reverse('shop:home'), data=data)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        cart = response.context['cart']
+        self.assertEqual(cart.get(spec.id), data['quantity'])
+
+    def test_remove_item_from_cart(self):
+        """Changing the quantity to zero remove an item from the cart."""
+        spec = self.specs[0]
+        defaults = {'quantity': spec.pre_packing, 'price': spec.price}
+        # A user cart is the Order model with a cart status.
+        self.cart_order.specs.add(spec, through_defaults=defaults)
+        self.client.force_login(self.user)
+        data = {'specification': spec.id, 'quantity': 0}
+        response = self.client.post(reverse('shop:home'), data=data)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertNotIn(spec.id, response.context['cart'])
+        self.assertFalse(self.cart_order.specs.filter(pk=spec.id).exists())
 
 
 class SpecificationDetailTests(TestCase):
