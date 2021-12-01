@@ -116,10 +116,7 @@ class Specification(models.Model):
     Creates a model with quantity and price characteristics.
 
     Links all product models through the ContentType model.
-    Contains a field named customers, which is used to add
-    products to the cart through an intermediate table with
-    the quantity of items in user's cart.
-    The model has a many-to-many relationship with the Order
+    This model has a many-to-many relationship with the Order
     model through an intermediate OrderItem model.
     """
     tag = models.CharField(max_length=20, blank=True)
@@ -144,14 +141,14 @@ class Specification(models.Model):
         validators=[MinValueValidator(Decimal('0.01'))],
     )
     discount = models.IntegerField(
-        default='0', help_text='A discount from 0 to 99%.',
+        default=0, help_text='A discount from 0 to 99%.',
         validators=[MinValueValidator(0), MaxValueValidator(99)]
     )
     discount_price = models.DecimalField(
-        editable=False, max_digits=9, decimal_places=2, default='0',
+        editable=False, max_digits=9, decimal_places=2, default=Decimal('0'),
     )
     sale_price = models.DecimalField(
-        max_digits=9, decimal_places=2, default='0',
+        max_digits=9, decimal_places=2, default=Decimal('0'),
         validators=[MinValueValidator(Decimal('0'))],
         help_text=('Special price replaces the discount price, '
                    '0 is disabled'),
@@ -236,7 +233,7 @@ class Order(models.Model):
     )
     address = models.TextField(blank=True)
     order_cost = models.DecimalField(
-        max_digits=9, decimal_places=2, default='0',
+        max_digits=9, decimal_places=2, default=Decimal('0'),
         validators=[MinValueValidator(Decimal('0'))],
     )
     reserved = models.BooleanField(default=False)

@@ -5,8 +5,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
 
-from . import views
-from .models import Specification, Order, Category
+from .. import views
+from ..models import Specification, Order, Category
 
 
 User = get_user_model()

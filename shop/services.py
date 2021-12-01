@@ -20,7 +20,8 @@ def handle_image_size(obj):
     """
     Changes dimensions of an image to the dimensions in IMG_SIZE constant.
 
-    If an image is loaded, the function creates new image object and replaces old one.
+    If an image is loaded and the image size is not equal to the IMG_SIZE,
+    the function creates new image object and replaces old one.
     """
     if (getattr(obj, '_committed', True) or not obj.name or
             (obj.width, obj.height) == IMG_SIZE):
