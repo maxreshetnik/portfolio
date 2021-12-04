@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db import models
+from django.db import models, transaction, IntegrityError
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -251,19 +251,47 @@ class Order(models.Model):
     def __str__(self):
         return f'{self.user} order No.{self.pk}'
 
+    def reserve_available_quantity(self):
+        """
+        Reduces the product spec available quantity by order item qty.
+        """
+        items = self.specs.through.objects.select_related(
+            'specification',
+        ).select_for_update().filter(order_id=self.id)
+        try:
+            with transaction.atomic():
+                for item in items:
+                    spec = item.specification
+                    spec.available_qty = models.F('available_qty') - item.quantity
+                    spec.save()
+        except IntegrityError:
+            return False
+        else:
+            self.reserved = True
+            return True
+
+    def cancel_reserved_quantity(self):
+        """
+        increase the available product quantity by item quantity from the order.
+        """
+        items = self.specs.through.objects.select_related(
+            'specification',
+        ).filter(order_id=self.id)
+        for item in items:
+            spec = item.specification
+            spec.available_qty = models.F('available_qty') + item.quantity
+            spec.save()
+        self.reserved = False
+
     def save(self, *args, **kwargs):
-        if self.reserved and self.status == self.CART and self.id is not None:
-            items = OrderItem.objects.select_related(
-                'specification',
-            ).filter(order_id=self.id)
-            for item in items:
-                spec = item.specification
-                spec.available_qty = models.F('available_qty') + item.quantity
-                spec.save()
-            self.reserved = False
+        """Extends the method with a condition for canceled reserved orders."""
+        if (self.status == self.CANCELED and
+                self.reserved and self.id is not None):
+            self.cancel_reserved_quantity()
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
+        """Removes only completed or canceled orders."""
         # noinspection PyTypeChecker
         if self.status > self.SHIPPING:
             super().delete(*args, **kwargs)
@@ -274,7 +302,7 @@ class OrderItem(models.Model):
     Creates intermediate table for ManyToMany field in Order model and Specification.
 
     The table has a unique constraint on the specification and
-    user fields to prevent duplicate rows.
+    order fields to prevent duplicate specification in the same Order.
     """
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     specification = models.ForeignKey(

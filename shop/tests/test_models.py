@@ -2,12 +2,16 @@ from decimal import Decimal
 from io import BytesIO
 from PIL import Image
 
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.images import ImageFile
+from django.db.utils import IntegrityError
 from django.test import TestCase
 
 from ..services import IMG_SIZE
-from ..models import Specification, Category, SmartphoneProduct
+from ..models import (
+    Specification, Category, SmartphoneProduct, Order,
+)
 
 
 def get_data_for_image_field(img_size: tuple) -> ImageFile:
@@ -137,3 +141,42 @@ class SpecificationTests(TestCase):
         spec.discount = 10
         spec.save()
         self.assertEqual(spec.discount_price, Decimal('9.00'))
+
+
+class OrderTests(TestCase):
+
+    fixtures = ['shop_example_data.json']
+
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        cls.username = 'test'
+        cls.passwd = 'fdf24F42uih'
+        cls.user = User.objects.create_user(
+            username=cls.username, password=cls.passwd,
+        )
+
+    def setUp(self):
+        self.cart_order = Order(user=self.user, status=Order.CART)
+
+    def test_create_order(self):
+        self.cart_order.save()
+        self.assertIsNotNone(self.cart_order.pk)
+        shipping_order = Order(user=self.user, status=Order.SHIPPING)
+        shipping_order.save()
+        self.assertIsNotNone(shipping_order.pk)
+        # create another order with the shipping status
+        shipping_order.pk = None
+        shipping_order.save()
+        self.assertEqual(
+            Order.objects.filter(user_id=self.user.pk).count(), 3,
+        )
+
+    def test_unique_order_with_cart_status(self):
+        """The same user can have one order with a cart status
+        and more than one with other status."""
+        self.cart_order.save()
+        self.cart_order.pk = None
+        msg = 'Check the unique constraint in the Order model.'
+        with self.assertRaises(IntegrityError, msg=msg):
+            self.cart_order.save()

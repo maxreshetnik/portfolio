@@ -110,6 +110,7 @@ class OrderAdmin(admin.ModelAdmin):
         return f if obj.status < obj.SHIPPING else f + ['address']
 
     def save_related(self, request, form, formset, change):
+        """Calculates the order cost and reserves the quantity of items"""
         super().save_related(request, form, formset, change)
         if not change:
             return
@@ -118,7 +119,8 @@ class OrderAdmin(admin.ModelAdmin):
             qs = models.Order.objects.filter(id=order.id)
             kwargs = {'order_cost': form.get_current_cost()}
             if order.status == order.PROCESSING and not order.reserved:
-                if form.reduce_available_quantity():
+                # reduce available quantity of product spec and reserved
+                if order.reserve_available_quantity():
                     kwargs['reserved'] = True
                 else:
                     kwargs['status'] = order.CART

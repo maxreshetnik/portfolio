@@ -25,7 +25,6 @@ from django.utils import timezone
 from .models import (
     Category, Specification, Rate, Order, OrderItem,
 )
-from .services import available_qty_handler
 from .forms import (CustomUserCreationForm, CustomUserChangeForm,
                     PartialOrderItemForm, PartialOrderForm)
 
@@ -393,6 +392,8 @@ class CartView(LoginRequiredMixin, ShopView):
             'specification', queryset=spec_queryset, to_attr='spec',
         )
         prefetch_related_objects(kwargs['cart'], spec_prefetch)
+        # check if items have changed in price or available qty
+        # and calculate the cost of the order.
         msg = 'Some items have changed in price or available qty.'
         for item in kwargs['cart']:
             if item.quantity > item.spec.available_qty:
@@ -440,9 +441,6 @@ class PlaceOrderView(AccountView):
                          f'add a product to your cart.')
             kwargs['cart_is_empty'] = empty_msg
             return self.render_to_response(self.get_context_data(**kwargs))
-        # if not order.address:
-        #     messages.warning(request, 'Please select a shipping address.')
-        #     return HttpResponseRedirect(f'{reverse("shop:cart")}')
         order.status = Order.PROCESSING
         form = PartialOrderForm(request.POST, instance=order)
         if form.is_valid():
@@ -528,7 +526,6 @@ class OrderDetailView(SingleObjectMixin, AccountView):
         """
         self.object = self.get_object()
         if self.object.status < self.object.SHIPPING:
-            available_qty_handler(self.object)
             self.object.status = self.object.CANCELED
             self.object.save()
             messages.info(request, 'Your order has been canceled.')

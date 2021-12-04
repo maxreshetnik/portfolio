@@ -1,7 +1,6 @@
 from io import BytesIO
 from PIL import Image
 
-from django.db.models import F
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.files.images import ImageFile, File
@@ -12,8 +11,8 @@ FILE_SIZE = (3, 'MB')   # maximal file size 'MB' or 'KB' only
 
 
 def get_file_directory_path(instance, filename):
-    obj_type = ContentType.objects.get_for_model(instance)
-    return f'{obj_type.app_label}/{filename}'
+    ct_obj = ContentType.objects.get_for_model(instance)
+    return f'{ct_obj.app_label}/{filename}'
 
 
 def handle_image_size(obj):
@@ -51,16 +50,3 @@ def validate_image_size(file):
         if file.width < IMG_SIZE[0] or file.height < IMG_SIZE[1]:
             raise ValidationError(f'Image sizes are smaller than '
                                   f'{IMG_SIZE[0]}x{IMG_SIZE[1]} pixels.')
-
-
-def available_qty_handler(order):
-    """increase the available product quantity by the quantity
-    from the reserved order."""
-    if order.reserved:
-        items = order.specs.through.objects.select_related(
-            'specification',
-        ).filter(order_id=order.id)
-        for item in items:
-            spec = item.specification
-            spec.available_qty = F('available_qty') + item.quantity
-            spec.save()

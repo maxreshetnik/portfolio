@@ -3,7 +3,6 @@ from decimal import ROUND_FLOOR, Decimal
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.forms import ModelForm, ValidationError, HiddenInput
-from django.db import transaction, IntegrityError
 from django.db.models import Subquery, OuterRef, F, When, Case, Sum
 
 from .models import OrderItem, Order
@@ -70,21 +69,6 @@ class OrderForm(ModelForm):
         return (current_cost.quantize(order.order_cost) if
                 current_cost is not None else Decimal('0.00'))
 
-    def reduce_available_quantity(self):
-        """Reduces the available quantity of an item by the qty in order."""
-        items = OrderItem.objects.select_related(
-            'specification',
-        ).select_for_update().filter(order=self.instance)
-        try:
-            with transaction.atomic():
-                for item in items:
-                    spec = item.specification
-                    spec.available_qty = F('available_qty') - item.quantity
-                    spec.save()
-            return True
-        except IntegrityError:
-            return False
-
     def clean_status(self):
         """
         Defines an additional check for the uniqueness of a user order.
@@ -136,9 +120,7 @@ class OrderForm(ModelForm):
         """
         order = self.instance
         if order.status == order.PROCESSING and commit and not order.reserved:
-            if self.reduce_available_quantity():
-                order.reserved = True
-            else:
+            if not order.reserve_available_quantity():
                 order.status = order.CART
         return super().save(commit=commit)
 
