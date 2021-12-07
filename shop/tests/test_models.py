@@ -104,6 +104,19 @@ class SpecificationTests(TestCase):
             Specification.objects.filter(pk=spec.pk).count(), 1,
         )
 
+    def test_available_qty_constraint(self):
+        """
+        Checking the model constraint on the value of available qty field.
+
+        An IntegrityError exception should be raised if the field value
+        is less than 0.
+        """
+        spec = self.specification
+        spec.available_qty = Decimal('-1.000')
+        msg = 'Add a CheckConstraint to the specification model Meta class.'
+        with self.assertRaises(IntegrityError, msg=msg):
+            spec.save()
+
     def test_create_specification_with_blank_image(self):
         spec = self.specification
         setattr(spec.image, '_committed', False)
@@ -159,6 +172,19 @@ class OrderTests(TestCase):
     def setUp(self):
         self.cart_order = Order(user=self.user, status=Order.CART)
 
+    def fill_cart_order_with_items(self, num_items: int) -> list:
+        self.cart_order.save()
+        spec_list = list(Specification.objects.filter(
+            available_qty__gt=0,
+        )[:num_items])
+        for spec in spec_list:
+            self.cart_order.specs.add(
+                spec,
+                through_defaults={'quantity': spec.pre_packing,
+                                  'price': spec.price},
+            )
+        return spec_list
+
     def test_create_order(self):
         self.cart_order.save()
         self.assertIsNotNone(self.cart_order.pk)
@@ -180,3 +206,120 @@ class OrderTests(TestCase):
         msg = 'Check the unique constraint in the Order model.'
         with self.assertRaises(IntegrityError, msg=msg):
             self.cart_order.save()
+
+    def test_add_items_to_order(self):
+        num_items = 2
+        self.fill_cart_order_with_items(num_items)
+        self.assertEqual(self.cart_order.specs.count(), num_items)
+
+    def test_cancel_reserved_quantity(self):
+        """Increase the available spec quantity by item quantity
+        from the order."""
+        num_items = 3
+        spec_list = self.fill_cart_order_with_items(num_items)
+        available_qty_result = {
+            s.id: s.available_qty + s.pre_packing for s in spec_list
+        }
+        self.cart_order.reserved = True
+        self.cart_order.cancel_reserved_quantity()
+        self.assertFalse(self.cart_order.reserved)
+        for spec in self.cart_order.specs.all():
+            self.assertEqual(
+                spec.available_qty,
+                available_qty_result.get(spec.id, None),
+            )
+
+    def test_cancel_reserved_quantity_pre_delete_signal(self):
+        """Increase the available qty when deleting unshipped orders."""
+        num_items = 1
+        self.cart_order.status = self.cart_order.PROCESSING
+        self.cart_order.reserved = True
+        spec_list = self.fill_cart_order_with_items(num_items)
+        spec = spec_list[0]
+        available_qty_result = spec.available_qty + spec.pre_packing
+        Order.objects.filter(pk=self.cart_order.id).delete()
+        spec.refresh_from_db()
+        self.assertEqual(spec.available_qty, available_qty_result)
+
+    def test_save_canceled_order_with_reserved_quantity(self):
+        """The method cancel_reserved_quantity() is called when
+        an existing order is saved with a canceled status."""
+        num_items = 1
+        spec_list = self.fill_cart_order_with_items(num_items)
+        spec = spec_list[0]
+        available_qty_result = spec.available_qty + spec.pre_packing
+        self.cart_order.status = self.cart_order.CANCELED
+        self.cart_order.reserved = True
+        self.cart_order.save()
+        spec.refresh_from_db()
+        self.assertEqual(spec.available_qty, available_qty_result)
+
+    def test_reserve_available_quantity(self):
+        """
+        Decrease available qty on a product spec by each item qty.
+
+        Method reserve_available_quantity() returns True if the decrease
+        in the available quantity was successful for all items.
+        """
+        num_items = 3
+        spec_list = self.fill_cart_order_with_items(num_items)
+        available_qty_result = {
+            s.id: s.available_qty - s.pre_packing for s in spec_list
+        }
+        self.cart_order.status = self.cart_order.PROCESSING
+        is_reserved = self.cart_order.reserve_available_quantity()
+        self.assertTrue(is_reserved, msg='The order was not reserved.')
+        for spec in self.cart_order.specs.all():
+            self.assertEqual(
+                spec.available_qty,
+                available_qty_result.get(spec.id, None),
+                msg=('The actual available qty has not been reduced by '
+                     'the item qty.')
+            )
+        self.assertTrue(
+            self.cart_order.reserved,
+            msg='Value of reserved field should be changed to True.'
+        )
+
+    def test_item_qty_not_available_for_reservation(self):
+        """Cancel the reservation of all products if there is not enough
+        the available quantity for any product."""
+        num_items = 3
+        spec_list = self.fill_cart_order_with_items(num_items)
+        # One of the items is out of stock.
+        spec_list[-1].available_qty = Decimal('0')
+        spec_list[-1].save()
+        available_qty_result = {
+            s.id: s.available_qty for s in spec_list
+        }
+        # Decreases available qty on a product spec by each item qty.
+        is_reserved = self.cart_order.reserve_available_quantity()
+        self.assertFalse(
+            is_reserved, msg=('The order was reserved with an item '
+                              'that is out of stock.')
+        )
+        for spec in self.cart_order.specs.all():
+            self.assertEqual(
+                spec.available_qty,
+                available_qty_result.get(spec.id, None),
+                msg=('Actual available qty was changed, '
+                     'unable to rollback db transaction.')
+            )
+
+    def test_order_specs_unique_constraint(self):
+        """The same order contains unique product specifications."""
+        self.cart_order.save()
+        spec = Specification.objects.first()
+        item = self.cart_order.specs.through(
+            order=self.cart_order,
+            specification=spec,
+            quantity=spec.pre_packing,
+            price=spec.price,
+        )
+        item.save()
+        item.pk = None
+        msg = ('Add a unique constraint for order and specification '
+               'fields to the intermediate model specified in '
+               'the many-to-many field specs.')
+        with self.assertRaises(IntegrityError, msg=msg):
+            item.save()

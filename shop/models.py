@@ -251,7 +251,7 @@ class Order(models.Model):
     def __str__(self):
         return f'{self.user} order No.{self.pk}'
 
-    def reserve_available_quantity(self):
+    def reserve_available_quantity(self) -> bool:
         """
         Reduces the product spec available quantity by order item qty.
         """
