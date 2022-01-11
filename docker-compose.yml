@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ./
+      target: development1
+      dockerfile: ./Dockerfile
+    secrets:
+      - source: portfolio_secrets.json
+        target: ./conf/secrets.json
+        mode: 0440
+    volumes:
+      - portfolio_static:./static
+      - portfolio_media:./media
+    depends_on:
+      - db
+      - memcached
+  db:
+    image: postgres:14.1
+    volumes:
+      - portfolio_pg_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=portfolio
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=portfolio
+  web:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    configs:
+      - source: portfolio_nginx_site
+        target: /etc/nginx/sites-available
+      - source: portfolio_nginx_site
+        target: /etc/nginx/sites-enabled
+    secrets:
+      - fullchain.pem
+      - privkey.pem
+    volumes:
+      - portfolio_static:/usr/share/nginx/static
+      - portfolio_media:/usr/share/nginx/media
+  depends_on:
+    - backend
+  memcached:
+    image: memcached:latest
+configs:
+  portfolio_nginx_site:
+secrets:
+  portfolio_secrets.json:
+    external: true  
+  fullchain.pem:
+    external: true  
+  privkey.pem:
+    external: true
+volumes:
+  portfolio_static:
+  portfolio_media:
+  portfolio_pg_data:
