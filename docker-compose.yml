@@ -1,59 +1,97 @@
 version: '3.9'
-
 services:
+
   backend:
     build:
       context: ./
-      target: development1
+      target: prod
       dockerfile: ./Dockerfile
     secrets:
-      - source: portfolio_secrets.json
+      - source: secrets.json
         target: ./conf/secrets.json
         mode: 0440
     volumes:
-      - portfolio_static:./static
-      - portfolio_media:./media
+      - static:./static
+      - media:./media
     depends_on:
       - db
       - memcached
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   db:
-    image: postgres:14.1
+    image: "postgres:${POSTGRES_VERSION:-latest}"
     volumes:
-      - portfolio_pg_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=portfolio
-      - POSTGRES_PASSWORD=test
-      - POSTGRES_DB=portfolio
+      - db_data:/var/lib/postgresql/data
+    configs:
+      - source: init_user_db.sh
+        target: /docker-entrypoint-initdb.d/init-user-db.sh
+        mode: 0440
+    secrets:
+      - db.env
+    env_file:
+      - /run/secrets/db.env
+
   web:
     image: nginx:alpine
     ports:
       - "80:80"
       - "443:443"
     configs:
-      - source: portfolio_nginx_site
-        target: /etc/nginx/sites-available
-      - source: portfolio_nginx_site
-        target: /etc/nginx/sites-enabled
+      - source: nginx_site.conf
+        target: /etc/nginx/sites-available/portfolio
+        read_only: true
+      - source: nginx_site.conf
+        target: /etc/nginx/sites-enabled/portfolio
+        read_only: true
+      - source: options_ssl_nginx.conf
+        target: /etc/nginx/conf.d/options-ssl-nginx.conf
+        read_only: true
     secrets:
-      - fullchain.pem
-      - privkey.pem
+      - ssl_fullchain.pem
+      - ssl_privkey.pem
+      - ssl_dhparams.pem
     volumes:
-      - portfolio_static:/usr/share/nginx/static
-      - portfolio_media:/usr/share/nginx/media
-  depends_on:
-    - backend
+      - static:/usr/share/nginx/static:ro
+      - media:/usr/share/nginx/media:ro
+    depends_on:
+      - backend
+
   memcached:
     image: memcached:latest
+
 configs:
-  portfolio_nginx_site:
-secrets:
-  portfolio_secrets.json:
-    external: true  
-  fullchain.pem:
-    external: true  
-  privkey.pem:
+  nginx_site.conf:
     external: true
+    name: portfolio_nginx_site.conf
+  options_ssl_nginx.conf:
+    external: true
+    name: options-ssl-nginx.conf
+  init_user_db.sh:
+    file: ./conf/init-user-db.sh
+
+secrets:
+  secrets.json:
+    external: true
+    name: portfolio_secrets.json
+  db.env:
+    external: true
+    name: portfolio_db.env
+  ssl_fullchain.pem:
+    external: true
+  ssl_privkey.pem:
+    external: true
+  ssl_dhparams.pem:
+    external: true
+    
 volumes:
-  portfolio_static:
-  portfolio_media:
-  portfolio_pg_data:
+  static:
+  media:
+  db_data:
