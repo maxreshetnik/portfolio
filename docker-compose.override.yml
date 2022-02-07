@@ -1,0 +1,31 @@
+# By default, Compose reads two files, a docker-compose.yml
+# and an optional docker-compose.override.yml.
+# This file overrides or extends fields.
+version: '3.9'
+services:
+
+  backend:
+    image: portfolio:example
+    environment:
+      - PROJECT_SECRETS_FILE=/example-secrets.json
+    restart: always
+    volumes:
+      - ./conf/example-secrets.json:/example-secrets.json:ro
+
+  db:
+    restart: always
+    volumes:
+      - ./conf/db-init-user.sh:/docker-entrypoint-initdb.d/db-init-user.sh:ro
+      - ./conf/example-db.env:/example-db.env:ro
+    environment:
+      - POSTGRES_PASSWORD_FILE=/example-db.env
+      - DB_ENV_FILE=/example-db.env
+
+  web:
+    image: "nginx:latest"
+    restart: always
+    volumes:
+      - ./conf/nginx-default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./conf/ssl-nginx-entrypoint.sh:/docker-entrypoint.d/ssl-nginx-entrypoint.sh:ro
+    env_file:
+      - ./conf/example-web.env

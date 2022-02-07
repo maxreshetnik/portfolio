@@ -1,0 +1,168 @@
+client_header_timeout  3m;
+client_body_timeout    3m;
+send_timeout           3m;
+
+client_header_buffer_size    1k;
+large_client_header_buffers  4 4k;
+
+gzip on;
+gzip_min_length  1100;
+gzip_buffers     4 8k;
+gzip_types       text/plain;
+
+output_buffers   1 32k;
+postpone_output  1460;
+
+tcp_nopush       on;
+tcp_nodelay      on;
+
+upstream app_server {
+    server ${APP_SERVER_LOCATION} fail_timeout=0;
+}
+
+server {
+    listen 80 default_server;
+    server_name _;
+    return 444;
+}
+
+server {
+    listen      80;
+    listen [::]:80;
+    server_name ${DOMAIN_NAME} www.${DOMAIN_NAME};
+
+    location / {
+        return 301 https://${DOMAIN_NAME}$request_uri;
+    }
+    
+    # Letsencrypt certbot files for authentication server
+    location ~ /.well-known/acme-challenge {
+        allow all;
+        root ${SSL_DIR}/html/${DOMAIN_NAME};
+    }
+}
+
+server {
+    listen       8080;
+    listen  [::]:8080;
+    
+    server_name  localhost 127.0.0.1;
+
+    root  /usr/share/nginx;
+
+    location / {
+        try_files @proxy_to_app @proxy_to_app;
+    }
+
+    location ^~ /static/ {
+        try_files $uri @proxy_to_app;
+    }
+
+    location ^~ /media/ {
+        try_files $uri @proxy_to_app;
+    }
+    location = /favicon.ico {
+        access_log off; 
+        log_not_found off; 
+    }
+
+    location @proxy_to_app {
+        proxy_pass http://app_server;
+
+        proxy_redirect off;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP  $remote_addr;
+    }
+
+    error_page  500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
+
+# ===================================================================
+
+server {
+    listen 443 ssl default_server;
+    server_name _;
+    ssl_reject_handshake on;
+    return 444;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name ${DOMAIN_NAME} www.${DOMAIN_NAME};
+
+    access_log  /var/log/nginx/${DOMAIN_NAME}.access.log;
+    error_log /var/log/nginx/${DOMAIN_NAME}.error.log;
+
+    keepalive_timeout  60;
+    
+    add_header  Strict-Transport-Security "max-age=31536000; includeSubdomains;";
+
+    # SSL Certificate files
+    ssl_certificate      ${SSL_DIR}/live/${DOMAIN_NAME}/fullchain.pem;
+    ssl_certificate_key  ${SSL_DIR}/live/${DOMAIN_NAME}/privkey.pem;
+    ssl_dhparam          ${SSL_DIR}/ssl-dhparams.pem;
+
+    # SSL settings
+    include              ${SSL_DIR}/options-ssl-nginx.conf;
+
+    root  /usr/share/nginx;
+
+    location / {
+        try_files @proxy_to_app @proxy_to_app;
+        log_not_found off;
+    }
+
+    location ^~ /static/ {
+        try_files $uri @proxy_to_app;
+        expires 30d;
+        proxy_buffering           on;
+        proxy_cache_valid 200 120m;
+    }
+
+    location ^~ /media/ {
+        try_files $uri @proxy_to_app;
+    }
+
+    location = /favicon.ico {
+        access_log off; 
+        log_not_found off; 
+    }
+    location = /robots.txt {
+        allow all;
+        log_not_found off;
+        access_log off;
+    }
+
+    location ~ /\..* {
+        deny all;
+    }
+
+    location @proxy_to_app {
+        proxy_pass http://app_server;
+        proxy_redirect off;
+
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP  $remote_addr;
+        proxy_set_header Host $http_host;
+
+        client_max_body_size    10m;
+        client_body_buffer_size 128k;
+        proxy_connect_timeout   90;
+        proxy_send_timeout      90;
+        proxy_read_timeout      90;
+        proxy_buffers           32 4k;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}

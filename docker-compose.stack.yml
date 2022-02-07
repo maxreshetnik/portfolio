@@ -1,0 +1,80 @@
+# This file overrides and extends docker-compose.yml file.
+version: '3.9'
+services:
+
+  backend:
+    image: maxreshetnik/portfolio:0.8.1
+    environment:
+      - PROJECT_SECRETS_FILE=/run/secrets/secrets.json
+    secrets:
+      - secrets.json
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  db:
+    configs:
+      - source: db_init_user.sh
+        target: /docker-entrypoint-initdb.d/db-init-user.sh
+        mode: 0555
+    environment:
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db.env
+      - DB_ENV_FILE=/run/secrets/db.env
+    secrets:
+      - db.env
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  web:
+    configs:
+      - source: nginx_default.conf.template
+        target: /etc/nginx/templates/default.conf.template
+        mode: 0444
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:?err}
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+
+  ssl:
+    image: certbot/certbot:latest
+    entrypoint: ["/ssl-nginx-entrypoint.sh", "certbot"]
+    command: ["certonly"]
+    configs:
+      - source: ssl_nginx_entrypoint.sh
+        target: /ssl-nginx-entrypoint.sh
+        mode: 0555
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:?err}
+      - SSL_EMAIL=${SSL_EMAIL:?err}
+      - SSL_DIR=/etc/letsencrypt
+    volumes:
+      - ssl_files:/etc/letsencrypt
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 60s
+        max_attempts: 5
+        window: 120s
+
+configs:
+  db_init_user.sh:
+    file: ./conf/db-init-user.sh
+  nginx_default.conf.template:
+    file: ./conf/nginx-default.conf.template
+  ssl_nginx_entrypoint.sh:
+    file: ./conf/ssl-nginx-entrypoint.sh
+
+secrets:
+  secrets.json:
+    external: true
+    name: portfolio_secrets.json
+  db.env:
+    external: true
+    name: portfolio_db.env

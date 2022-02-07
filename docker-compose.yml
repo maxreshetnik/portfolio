@@ -1,97 +1,50 @@
 version: '3.9'
+
 services:
 
   backend:
     build:
       context: ./
-      target: prod
       dockerfile: ./Dockerfile
-    secrets:
-      - source: secrets.json
-        target: ./conf/secrets.json
-        mode: 0440
+      target: prod
     volumes:
-      - static:./static
-      - media:./media
+      - media:/home/portfolio/media
+      - static:/home/portfolio/static
     depends_on:
       - db
-      - memcached
-    deploy:
-      restart_policy:
-        condition: on-failure
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - cache
 
   db:
-    image: "postgres:${POSTGRES_VERSION:-latest}"
+    image: postgres:14.1-alpine
     volumes:
       - db_data:/var/lib/postgresql/data
-    configs:
-      - source: init_user_db.sh
-        target: /docker-entrypoint-initdb.d/init-user-db.sh
-        mode: 0440
-    secrets:
-      - db.env
-    env_file:
-      - /run/secrets/db.env
-
+        
+  cache:
+    image: memcached:alpine
+    restart: always
+  
   web:
     image: nginx:alpine
+    environment:
+      - APP_SERVER_LOCATION=backend:8000
+      - SSL_DIR=/etc/nginx/ssl
     ports:
       - "80:80"
       - "443:443"
-    configs:
-      - source: nginx_site.conf
-        target: /etc/nginx/sites-available/portfolio
-        read_only: true
-      - source: nginx_site.conf
-        target: /etc/nginx/sites-enabled/portfolio
-        read_only: true
-      - source: options_ssl_nginx.conf
-        target: /etc/nginx/conf.d/options-ssl-nginx.conf
-        read_only: true
-    secrets:
-      - ssl_fullchain.pem
-      - ssl_privkey.pem
-      - ssl_dhparams.pem
+      - "8080:8080"
     volumes:
       - static:/usr/share/nginx/static:ro
       - media:/usr/share/nginx/media:ro
+      - ssl_files:/etc/nginx/ssl
     depends_on:
       - backend
 
-  memcached:
-    image: memcached:latest
-
-configs:
-  nginx_site.conf:
-    external: true
-    name: portfolio_nginx_site.conf
-  options_ssl_nginx.conf:
-    external: true
-    name: options-ssl-nginx.conf
-  init_user_db.sh:
-    file: ./conf/init-user-db.sh
-
-secrets:
-  secrets.json:
-    external: true
-    name: portfolio_secrets.json
-  db.env:
-    external: true
-    name: portfolio_db.env
-  ssl_fullchain.pem:
-    external: true
-  ssl_privkey.pem:
-    external: true
-  ssl_dhparams.pem:
-    external: true
-    
 volumes:
-  static:
   media:
+  static:
   db_data:
+  ssl_files:
+
+networks:
+  default:
+    name: portfolio_net

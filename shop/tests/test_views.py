@@ -36,7 +36,7 @@ class CreateAccountViewTests(TestCase):
 
 class HomePageViewTests(TestCase):
 
-    fixtures = ['shop_example_data.json']
+    fixtures = ['example_shop_data.json']
 
     @classmethod
     def setUpTestData(cls):
@@ -163,7 +163,7 @@ class HomePageViewTests(TestCase):
 
 class SpecificationDetailTests(TestCase):
 
-    fixtures = ['shop_example_data.json']
+    fixtures = ['example_shop_data.json']
 
     @classmethod
     def setUpTestData(cls):
@@ -200,7 +200,7 @@ class SpecificationDetailTests(TestCase):
 
 class SearchViewTests(TestCase):
 
-    fixtures = ['shop_example_data.json']
+    fixtures = ['example_shop_data.json']
 
     def test_parent_category_search_result(self):
         """

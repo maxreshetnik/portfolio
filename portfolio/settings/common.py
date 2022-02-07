@@ -5,14 +5,20 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-data_dir_key = 'PORTFOLIO_DATA_DIR'
-DATA_DIR = Path(os.environ[data_dir_key]) if data_dir_key in os.environ else BASE_DIR.parent
+data_dir_key = 'PROJECT_DATA_DIR'
+secrets_file_key = 'PROJECT_SECRETS_FILE'
+DATA_DIR = Path(os.environ[data_dir_key]) if data_dir_key in os.environ else BASE_DIR
+
+if secrets_file_key in os.environ:
+    secrets_path = Path(os.environ[secrets_file_key])
+else:
+    secrets_path = DATA_DIR.joinpath('conf', 'secrets.json')
 
 try:
-    with DATA_DIR.joinpath('conf', 'secrets.json').open() as handle:
+    with secrets_path.open() as handle:
         SECRETS = json.load(handle)
 except IOError:
-    SECRETS = {'secret_key': 'a'}
+    SECRETS = {'secret_key': ''}
 
 
 # Application definition
@@ -92,7 +98,7 @@ EMAIL_HOST_PASSWORD = SECRETS.get('email_host_password', '')
 
 EMAIL_HOST_USER = SECRETS.get('email_host_user', '')
 
-EMAIL_PORT = SECRETS.get('email_port', 25)
+EMAIL_PORT = SECRETS.get('email_port', 587)
 
 EMAIL_USE_TLS = True
 
@@ -137,7 +143,10 @@ LOGIN_URL = '/shop/account/login/'
 
 # Media files
 MEDIA_URL = '/media/'
-MEDIA_ROOT = str(BASE_DIR.joinpath('media'))
+
+MEDIA_ROOT = str(DATA_DIR.joinpath('media'))
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
+
+STATIC_ROOT = str(DATA_DIR.joinpath('static'))

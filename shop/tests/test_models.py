@@ -158,7 +158,7 @@ class SpecificationTests(TestCase):
 
 class OrderTests(TestCase):
 
-    fixtures = ['shop_example_data.json']
+    fixtures = ['example_shop_data.json']
 
     @classmethod
     def setUpTestData(cls):

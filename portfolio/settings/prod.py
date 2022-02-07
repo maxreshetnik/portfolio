@@ -3,7 +3,7 @@ from .common import *
 
 ADMINS = SECRETS.get('admins', [])
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost'] + SECRETS.get('allowed_hosts', [])
+ALLOWED_HOSTS = SECRETS.get('allowed_hosts', [])
 
 CACHES = {
     'default': {
@@ -22,7 +22,3 @@ DEBUG = False
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 SESSION_COOKIE_SECURE = True
-
-STATIC_ROOT = str(DATA_DIR.joinpath('static'))
-
-MEDIA_ROOT = str(DATA_DIR.joinpath('media'))

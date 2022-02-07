@@ -1,43 +1,60 @@
-# syntax=docker/dockerfile:1
-ARG PYTHON_VERSION=3.9
-ARG PYTHON_BUILD=slim
-ARG PROJECT=portfolio
+ARG PYTHON_MINOR_VERSION="3.9"
+ARG PYTHON_BUILD="-slim"
+ARG PROJECT_NAME="portfolio"
+ARG USER_DIR="/home/${PROJECT_NAME}"
+ARG PROJECT_DIR="${USER_DIR}/src/${PROJECT_NAME}"
 
-FROM python:${PYTHON_VERSION}-${PYTHON_BUILD} AS builder
-RUN apt update && apt install --no-install-recommends -y \
-    build-essential gcc python3-pip python3-dev libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-COPY requirements.txt /tmp/
-RUN pip install --upgrade pip \
-    && pip install --no-cache-dir --prefix /usr/local \
-    gunicorn -r /tmp/requirements.txt \
-    && rm -f /tmp/requirements.txt
+FROM python:${PYTHON_MINOR_VERSION}${PYTHON_BUILD} AS builder
+ARG PYTHON_MINOR_VERSION
+ARG USER_DIR
+ARG PROJECT_DIR
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    python${PYTHON_MINOR_VERSION}-dev libpq-dev gcc \
+    && rm -rf /var/lib/apt/lists/* 
+WORKDIR "${USER_DIR}/.local/"
+COPY requirements.txt .
+RUN pip install --disable-pip-version-check --no-cache-dir \
+    --prefix . gunicorn -r requirements.txt \
+    && rm -rf requirements.txt
+COPY . $PROJECT_DIR
 
-FROM builder AS dev
-ARG PROJECT
+FROM python:${PYTHON_MINOR_VERSION}${PYTHON_BUILD} AS prod
+ARG PYTHON_MINOR_VERSION
+ARG PROJECT_NAME
+ARG USER_DIR
+ARG PROJECT_DIR
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
 EXPOSE 8000
-ENV PORTFOLIO_DATA_DIR=/usr/src/${PROJECT}
-COPY ./ ${PORTFOLIO_DATA_DIR}
-WORKDIR ${PORTFOLIO_DATA_DIR}
-RUN chmod 555 ./conf/entrypoint.sh ./conf/init-user-db.sh \
-    && groupadd -r ${PROJECT} && useradd -r -g ${PROJECT} ${PROJECT}
-USER ${PROJECT}
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=portfolio.settings.dev
-ENV GUNICORN_CMD_ARGS="--bind=127.0.0.1:8000 --reload"
-VOLUME ["${PORTFOLIO_DATA_DIR}/static", "${PORTFOLIO_DATA_DIR}/media"]
-ENTRYPOINT ["./conf/entrypoint.sh"]
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    python${PYTHON_MINOR_VERSION}-dev libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid $USER_GID $PROJECT_NAME \
+    && useradd --create-home --no-log-init \
+    --gid USER_GID --uid $USER_UID $PROJECT_NAME \
+    && mkdir -p ${USER_DIR}/media \
+    && mkdir -p ${USER_DIR}/static \
+    && chown -R $USER_UID:USER_GID $USER_DIR
+USER $PROJECT_NAME
+COPY --chown=$USER_UID:USER_GID \
+    --from=builder $USER_DIR $USER_DIR
+WORKDIR $PROJECT_DIR
+ENV PATH="${USER_DIR}/.local/bin:${PATH}" \
+    PROJECT_DATA_DIR=${USER_DIR} \
+    DJANGO_SETTINGS_MODULE=portfolio.settings.prod
+VOLUME ["${PROJECT_DATA_DIR}/media", "${PROJECT_DATA_DIR}/static"]
+HEALTHCHECK --interval=10m --timeout=3s \
+    CMD curl -f http://localhost:8000/ || exit 1
+ENTRYPOINT ["./conf/backend-entrypoint.sh"]
 CMD ["gunicorn", "portfolio.wsgi"]
 
-FROM python:${PYTHON_VERSION}-${PYTHON_BUILD} AS prod
-ARG PROJECT
-EXPOSE 8000
-COPY --from=builder /usr/local /usr/local
-ENV PORTFOLIO_DATA_DIR=/usr/src/${PROJECT}
-COPY ./ ${PORTFOLIO_DATA_DIR}
-WORKDIR ${PORTFOLIO_DATA_DIR}
-RUN chmod 555 ./conf/entrypoint.sh ./conf/init-user-db.sh \
-    && groupadd -r ${PROJECT} && useradd -r -g ${PROJECT} ${PROJECT}
-USER ${PROJECT}
-ENTRYPOINT ["./conf/entrypoint.sh", "gunicorn", "portfolio.wsgi"]
+FROM prod AS dev
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=portfolio.settings.dev \
+    GUNICORN_CMD_ARGS="--bind=0.0.0.0:8000 --reload --access-logfile -" \
+    PROJECT_SECRETS_FILE="${PROJECT_DIR}/conf/example-secrets.json" \
+    RACK_ENV="dev"
+HEALTHCHECK NONE

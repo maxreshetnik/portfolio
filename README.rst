@@ -24,9 +24,9 @@ an online store, for more details see in `Shop app`_ repository.
 To run locally, do the usual
 """"""""""""""""""""""""""""""
 
-1.  Create a Python 3.9 virtual environment
+1.  Requires python, postgresql, libpq-dev and memcached packages to be installed.
 
-2.  Install dependencies::
+2.  Create a python virtual environment and install dependencies::
 
         pip install -r requirements.txt
 
@@ -34,27 +34,31 @@ To run locally, do the usual
     activate venv script and restart venv to load the changes.
     If the variable is not specified production settings are used.
 
-4.  Make a directory if you want to store the project's data in other place
-    (MEDIA_ROOT, STATIC_ROOT, etc.) then you need to add the variable to
-    your user's environment::
+4.  Make a directory if you want to store project data in other place
+    (MEDIA_ROOT, STATIC_ROOT, etc.), then you need to add the path to
+    environment variable::
 
-        export PORTFOLIO_DATA_DIR=~/your_data_dir
+        export PROJECT_DATA_DIR=/path/to/your_data_dir
 
-    *by default, the data is stored in the project directory if developer settings
-    are set, and in the parent if production.*
+    *by default, media and static data is stored in the project directory.*
 
     Create a 'secrets.json' file in a directory named 'conf' in that directory
-    or in the project parent directory if that data dir is not specified,
-    containing something like::
+    or specify path to your json file in environment variable PROJECT_SECRETS_FILE,
+    in the project conf directory you can find an example, 
+    the file contains something like::
 
         {
             "secret_key": "abc",
             "allowed_hosts": [
-                "127.0.0.1"
+                "127.0.0.1",
+                "example.com",
             ],
-            "db_host": "localhost",
+            "db_name": "portfolio",
+            "db_user": "portfolio",
             "db_password": "secret",
-            "db_port": "",
+            "db_host": "localhost",
+            "db_port": 5432,
+            "cache_location": "localhost:11211",
             "email_host": "smtp.example.com",
             "email_port": 587,
             "email_host_password": "secret",
@@ -74,17 +78,17 @@ To run locally, do the usual
 
     (Use the same password as the one you've used in your secrets.json file)
 
-6.  Create tables::
+6.  Create database tables::
 
-        ./manage.py migrate
+        ./manage.py makemigrations && ./manage.py migrate
 
 7.  Create a superuser::
 
         ./manage.py createsuperuser
 
-8.  Start the development server::
+8.  Start test server with sample data::
 
-        ./manage.py runserver
+        ./manage.py testserver example_shop_data.json
 
-    Visit http://127.0.0.1:8000/admin/ to create portfolio or fill your online store
-    with products, then open http://127.0.0.1:8000/ or http://127.0.0.1:8000/shop/
+    Visit http://127.0.0.1:8000/admin/ to create portfolio or fill up the shop 
+    with products, then open http://127.0.0.1:8000/shop/
