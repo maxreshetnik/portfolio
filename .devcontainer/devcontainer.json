@@ -1,0 +1,35 @@
+{
+	"name": "Portfolio",
+	"dockerComposeFile": [
+		"../docker-compose.yml",
+		"../docker-compose.override.yml",
+		"./docker-compose.dev.yml"
+	],
+	"service": "backend",
+	"runServices": ["backend", "db", "cache"],
+	"workspaceFolder": "/workspace",
+	"remoteUser": "portfolio",
+
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"batisteo.vscode-django",
+		"k--kato.intellij-idea-keybindings"
+	],
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// This can be used to network with other containers or the host.
+	"forwardPorts": [8000, "web:443", "web:8080"],
+
+	// Set *default* container specific settings.json values on container create.
+	// "settings": {},
+	
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": [],
+	
+	// "features": {
+	// 	"git": "latest"
+	// }
+
+}

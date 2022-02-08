@@ -1,0 +1,52 @@
+# This file overrides and extends parent files 
+# -f docker-compose.yml -f docker-compose.override.yml
+version: '3.9'
+
+services:
+
+  backend:
+    image: portfolio:dev
+    build:
+      target: dev
+      args:
+        PYTHON_MINOR_VERSION: "3.9"
+        PYTHON_BUILD: "-slim"
+        PROJECT_NAME: "portfolio"
+        PROJECT_DIR: "/workspace"
+    environment:
+      - RACK_ENV=dev
+      - DJANGO_SETTINGS_MODULE=portfolio.settings.dev
+    command: sleep infinity
+    container_name: portfolio_backend_dev
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./
+        target: /workspace
+        volume:
+          nocopy: true
+      - type: bind
+        source: ./media
+        target: /home/portfolio/media
+        volume:
+          nocopy: true
+    # Runs app on the same network as the database container, 
+    # allows "forwardPorts" in devcontainer.json function.
+    network_mode: service:db
+    
+  db:
+    container_name: portfolio_db_dev
+    restart: unless-stopped
+
+  cache:
+    container_name: portfolio_backend_cache
+    restart: unless-stopped
+
+  web:
+    container_name: portfolio_backend_web
+    restart: unless-stopped
+
+networks:
+  default:
+    name: portfolio_dev_net
+    

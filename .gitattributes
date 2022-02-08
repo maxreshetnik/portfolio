@@ -1,4 +1,0 @@
-**/.devcontainer/* merge=ours
-.gitignore merge=ours
-devcontainer.json merge=ours
-docker-compose.dev.yml merge=ours

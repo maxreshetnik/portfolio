@@ -15,3 +15,4 @@ dist/
 !**/migrations/__init__.py
 !**/migrations/0001_initial.py
 
+!.devcontainer/
