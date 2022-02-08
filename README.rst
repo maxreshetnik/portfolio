@@ -86,9 +86,9 @@ To run locally, do the usual
 
         ./manage.py createsuperuser
 
-8.  Start test server with sample data::
+8.  Load sample data and start dev server::
 
-        ./manage.py testserver example_shop_data.json
+        ./manage.py loaddata example_shop_data.json && ./manage.py runserver
 
     Visit http://127.0.0.1:8000/admin/ to create portfolio or fill up the shop 
     with products, then open http://127.0.0.1:8000/shop/

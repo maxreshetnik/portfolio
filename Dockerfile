@@ -33,16 +33,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid $USER_GID $PROJECT_NAME \
     && useradd --create-home --no-log-init \
-    --gid USER_GID --uid $USER_UID $PROJECT_NAME \
-    && mkdir -p ${USER_DIR}/media \
-    && mkdir -p ${USER_DIR}/static \
-    && chown -R $USER_UID:USER_GID $USER_DIR
+    --gid $USER_GID --uid $USER_UID $PROJECT_NAME \
+    && mkdir -p "${USER_DIR}/media" \
+    && mkdir -p "${USER_DIR}/static" \
+    && chown -R $USER_UID:$USER_GID $USER_DIR
 USER $PROJECT_NAME
-COPY --chown=$USER_UID:USER_GID \
+COPY --chown=$USER_UID:$USER_GID \
     --from=builder $USER_DIR $USER_DIR
 WORKDIR $PROJECT_DIR
 ENV PATH="${USER_DIR}/.local/bin:${PATH}" \
-    PROJECT_DATA_DIR=${USER_DIR} \
+    PROJECT_DATA_DIR=$USER_DIR \
     DJANGO_SETTINGS_MODULE=portfolio.settings.prod
 VOLUME ["${PROJECT_DATA_DIR}/media", "${PROJECT_DATA_DIR}/static"]
 HEALTHCHECK --interval=10m --timeout=3s \

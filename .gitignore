@@ -1,5 +1,7 @@
 .*
 !.gitignore
+!.gitattributes
+!.dockerignore
 *.py[co]
 *.sqlite3
 *.egg-info
