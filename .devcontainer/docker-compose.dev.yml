@@ -10,12 +10,13 @@ services:
       target: dev
       args:
         PYTHON_MINOR_VERSION: "3.9"
-        PYTHON_BUILD: "-slim"
+        PYTHON_BUILD: ""
         PROJECT_NAME: "portfolio"
         PROJECT_DIR: "/workspace"
     environment:
       - RACK_ENV=dev
       - DJANGO_SETTINGS_MODULE=portfolio.settings.dev
+      - PGHOST=localhost
     command: sleep infinity
     container_name: portfolio_backend_dev
     restart: unless-stopped

@@ -22,3 +22,5 @@ DEBUG = False
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 SESSION_COOKIE_SECURE = True
+
+STATIC_ROOT = str(DATA_DIR.joinpath('static'))

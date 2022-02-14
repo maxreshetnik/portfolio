@@ -11,6 +11,8 @@
 **/compose*
 **/Dockerfile*
 **/media
+**/static_dev
+**/Makefile
 **/conf/*
 !**/conf/example-secrets.json
 !**/conf/backend-entrypoint.sh

@@ -51,6 +51,14 @@ ENTRYPOINT ["./conf/backend-entrypoint.sh"]
 CMD ["gunicorn", "portfolio.wsgi"]
 
 FROM prod AS dev
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --disable-pip-version-check \
+    --prefix ${USER_DIR}/.local coverage
+USER $PROJECT_NAME
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=portfolio.settings.dev \

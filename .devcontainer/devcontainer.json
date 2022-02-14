@@ -9,6 +9,7 @@
 	"runServices": ["backend", "db", "cache"],
 	"workspaceFolder": "/workspace",
 	"remoteUser": "portfolio",
+	// "remoteUser": "root",
 
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
@@ -26,10 +27,8 @@
 	// "settings": {},
 	
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": [],
+	// "postCreateCommand": "",
 	
-	// "features": {
-	// 	"git": "latest"
-	// }
+	// "features": {}
 
 }

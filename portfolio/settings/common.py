@@ -148,5 +148,3 @@ MEDIA_ROOT = str(DATA_DIR.joinpath('media'))
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-
-STATIC_ROOT = str(DATA_DIR.joinpath('static'))

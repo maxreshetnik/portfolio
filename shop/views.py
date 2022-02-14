@@ -138,8 +138,12 @@ class ShopView(TemplateView):
         if 'form' not in kwargs:
             context['form'] = PartialOrderItemForm(auto_id=False)
         if not self.request.user.is_authenticated:
-            context['form_login'] = AuthenticationForm(label_suffix='')
-            context['form_sign_up'] = CustomUserCreationForm(label_suffix='')
+            context['form_login'] = AuthenticationForm(
+                auto_id='login_%s', label_suffix='',
+            )
+            context['form_sign_up'] = CustomUserCreationForm(
+                auto_id='sign_up_%s', label_suffix='',
+            )
         elif 'cart' not in kwargs:
             context['cart'] = {obj.specification_id: obj.quantity for
                                obj in self.get_cart_items()}

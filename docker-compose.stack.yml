@@ -7,7 +7,10 @@ services:
     environment:
       - PROJECT_SECRETS_FILE=/run/secrets/secrets.json
     secrets:
-      - secrets.json
+      - source: secrets.json
+        uid: '1000'
+        gid: '1000'
+        mode: 0400
     deploy:
       mode: replicated
       replicas: 1
@@ -21,7 +24,8 @@ services:
       - POSTGRES_PASSWORD_FILE=/run/secrets/db.env
       - DB_ENV_FILE=/run/secrets/db.env
     secrets:
-      - db.env
+      - source: db.env
+        mode: 0400
     deploy:
       mode: replicated
       replicas: 1
