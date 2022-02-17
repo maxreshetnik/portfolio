@@ -25,7 +25,6 @@ services:
       - DB_ENV_FILE=/run/secrets/db.env
     secrets:
       - source: db.env
-        mode: 0400
     deploy:
       mode: replicated
       replicas: 1
@@ -42,7 +41,7 @@ services:
       replicas: 1
       restart_policy:
         condition: any
-        delay: 10s
+        delay: 30s
 
   ssl:
     image: certbot/certbot:latest

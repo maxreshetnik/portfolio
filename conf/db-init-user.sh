@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -eau
     [ -f "${DB_ENV_FILE}" ] \
@@ -16,5 +16,3 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE DATABASE ${PORTFOLIO_DB_USER};
     GRANT ALL PRIVILEGES ON DATABASE ${PORTFOLIO_DB_USER} TO ${PORTFOLIO_DB_USER};
 EOSQL
-
-unset PORTFOLIO_DB_PASSWORD POSTGRES_PASSWORD
