@@ -5,7 +5,6 @@ version: '3.9'
 services:
 
   backend:
-    image: portfolio:example
     environment:
       - PROJECT_SECRETS_FILE=/example-secrets.json
     restart: always

@@ -3,7 +3,6 @@ version: '3.9'
 services:
 
   backend:
-    image: maxreshetnik/portfolio:0.8.1
     environment:
       - PROJECT_SECRETS_FILE=/run/secrets/secrets.json
     secrets:

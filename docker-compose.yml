@@ -7,6 +7,7 @@ services:
       context: ./
       dockerfile: ./Dockerfile
       target: prod
+    image: ${BACKEND_IMAGE:-maxreshetnik/portfolio:latest}
     volumes:
       - media:/home/portfolio/media
       - static:/home/portfolio/static
