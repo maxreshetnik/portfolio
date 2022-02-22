@@ -1,4 +1,4 @@
-name: CI
+name: Deployment
 
 on:
   push:
@@ -8,11 +8,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/${GITHUB_REPOSITORY#*/}
-      IMAGE_TAG:  ${GITHUB_SHA::8}
     outputs:
-      image_id: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+      image_tags: ${{ steps.image_id.outputs.image_tags }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -26,6 +23,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
+      - name: Set output image name and tags
+        id: image_id
+        env:
+          docker_id: ${{ secrets.DOCKER_HUB_USERNAME }}
+        shell: bash
+        run: |
+          echo "::set-output name=image::${docker_id}/${GITHUB_REPOSITORY#*/}"
+          echo "::set-output name=image_tags::${docker_id}/${GITHUB_REPOSITORY#*/}:${GITHUB_SHA::8}"
+
       - name: Build, tag and push image to Docker Hub
         uses: docker/build-push-action@v2
         with:
@@ -34,18 +40,19 @@ jobs:
           target: prod
           builder: ${{ steps.buildx.outputs.name }}
           push: true
-          tags: ${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+          tags: ${{ steps.image_id.outputs.image }}:latest,${{ steps.image_id.outputs.image_tags }}
+          cache-from: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache
+          cache-to: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache,mode=max
 
-  deploy:
+  deployment:
     needs: build
     if: ${{ success() }}
     runs-on: ubuntu-latest
+    environment: production
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Test
       run: |
         echo "Check steps"
-        echo "${{ needs.build.outputs.image_id }}"
+        echo "${{ needs.build.outputs.image_tags }}"

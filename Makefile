@@ -3,7 +3,7 @@ name_prefix = example-
 endif
 RACK_ENV ?= prod
 SECRETS_DIR ?= ./conf
-backend_id = "$$(docker ps | grep 'backend' | awk '{ print $$1 }')"
+backend_id = "$$(docker $(opts) ps | grep 'backend' | awk '{ print $$1 }')"
 -include $(SECRETS_DIR)/$(name_prefix)web.env $(SECRETS_DIR)/$(name_prefix)db.env
 export DOMAIN_NAME SSL_EMAIL
 
@@ -93,7 +93,7 @@ ps:
 
 prune: dev-check
 	docker-compose down -v --rmi all
-	docker image prune -f
+	docker $(opts) image prune -f
 
 backend-setup: dev-check backend-check-db backend-migrate-check
 ifneq (,$(media))
@@ -104,39 +104,39 @@ endif
 	args="--email admin@admin.com --noinput"
 
 backend-admin:
-	@docker exec -it $(backend_id) \
+	@docker $(opts) exec -it $(backend_id) \
 	bash -c ' $(vars) ./manage.py createsuperuser --username admin $(args)'
 
 backend-migrate: backend-check-db
-	docker exec -it $(backend_id) \
+	docker $(opts) exec -it $(backend_id) \
 	./manage.py makemigrations && ./manage.py migrate
 
 backend-migrate-check:
-	docker exec -it $(backend_id) \
+	docker $(opts) exec -it $(backend_id) \
 	./manage.py migrate --check
 
 backend-check: backend-check-db backend-check-deploy
 			
 backend-check-db:
-	docker exec -it $(backend_id) \
+	docker $(opts) exec -it $(backend_id) \
 	./manage.py check --database default
 			
 backend-check-deploy:
-	docker exec -it $(backend_id) \
+	docker $(opts) exec -it $(backend_id) \
 	./manage.py check --deploy
 
 backend-loaddata:
-	docker cp "$(src)" $(backend_id):/home/portfolio/data.json
-	docker exec -it $(backend_id) \
+	docker $(opts) cp "$(src)" $(backend_id):/home/portfolio/data.json
+	docker $(opts) exec -it $(backend_id) \
 	./manage.py loaddata /home/portfolio/data.json ; \
-	docker exec -it $(backend_id) \
+	docker $(opts) exec -it $(backend_id) \
 	rm /home/portfolio/data.json
 
 backend-loadmedia:
-	docker cp "$(src)" $(backend_id):/home/portfolio/
+	docker $(opts) cp "$(src)" $(backend_id):/home/portfolio/
 	
 backend-test:
-	docker exec -it $(backend_id) \
+	docker $(opts) exec -it $(backend_id) \
 	./manage.py test --verbosity 2
 
 # Docker Swarm targets, for prod.
@@ -157,10 +157,10 @@ stack-pull:
 	pull
 
 swarm:
-	docker swarm init --advertise-addr eth0
+	docker $(opts) swarm init --advertise-addr eth0
 
 deploy: stack-pull secrets
-	docker stack deploy \
+	docker $(opts) stack deploy \
 	-c ./docker-compose.yml -c ./docker-compose.stack.yml portfolio
 
 secrets: stack-rm secrets-prune
@@ -174,25 +174,25 @@ secrets-prune: stack-rm
 	# Cleaning up secrets is complete.
 
 secret-rm:
-	docker secret rm portfolio_$(name) || echo "error $$?"
+	docker $(opts) secret rm portfolio_$(name) || echo "error $$?"
 	
 secret-create:
-	docker secret create --label env=$(RACK_ENV) \
+	docker $(opts) secret create --label env=$(RACK_ENV) \
 	--label rev="$$(date +"%Y%m%d")" \
 	portfolio_$(name) $(SECRETS_DIR)/$(name_prefix)$(name)
 
 stack-prune: dev-check stack-rm secrets-prune
-	docker image prune --all -f
-	docker volume prune -f
+	docker $(opts) image prune --all -f
+	docker $(opts) volume prune -f
 
 stack-rm:
-	docker stack rm portfolio
+	docker $(opts) stack rm portfolio
 
 stack-info:
-	docker stack ps portfolio
-	docker stack services portfolio
+	docker $(opts) stack ps portfolio
+	docker $(opts) stack services portfolio
 
 service-logs:
-	docker stack ps --filter "name=portfolio_$(s)" portfolio
-	docker service logs --since 1m --no-task-ids -t --raw portfolio_$(s)
+	docker $(opts) stack ps --filter "name=portfolio_$(s)" portfolio
+	docker $(opts) service logs --since 1m --no-task-ids -t --raw portfolio_$(s)
 
