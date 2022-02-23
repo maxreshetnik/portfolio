@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      image_tags: ${{ steps.image_id.outputs.image_tags }}
+      image_tag: ${{ steps.image_id.outputs.image_tag }}
       repo_name: ${{ steps.image_id.outputs.repo_name }}
     steps:
       - name: Checkout
@@ -25,14 +25,14 @@ jobs:
         id: image_id
         shell: bash
         run: |
-          echo "::set-output name=image::${GITHUB_REPOSITORY}"
-          echo "::set-output name=image_tags::${GITHUB_REPOSITORY}:${GITHUB_SHA::12}"
+          echo "::set-output name=image_tag::${GITHUB_SHA::12}"
           echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
 
       - name: Build and tag images
         run: >
-          docker build --target prod -t ${{ steps.image_id.outputs.image_tags }} 
-          -t ${{ steps.image_id.outputs.image }}:latest .
+          docker build --target prod 
+          -t ${GITHUB_REPOSITORY}:${{ steps.image_id.outputs.image_tag }} 
+          -t ${GITHUB_REPOSITORY}:latest .
 
       - name: Push images to Docker Hub
         run: docker image push --all-tags ${{ steps.image_id.outputs.image }}
@@ -43,11 +43,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      BACKEND_IMAGE: ${{ needs.build.outputs.image_tags }}
       DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
       SSL_EMAIL: ${{ secrets.SSL_EMAIL }}
-      DOCKER_HOST: ssh://${{ secrets.SSH_HOST }}
+      DOCKER_HOST: "ssh://${{ secrets.SSH_HOST }}"
       STACK_NAME: ${{ needs.build.outputs.repo_name }}
+      BACKEND_IMAGE: ${GITHUB_REPOSITORY}:${{ needs.build.outputs.image_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -59,7 +59,7 @@ jobs:
           echo "${{ secrets.SSH_CONFIG }}" >> $HOME/.ssh/config
           echo "${{ secrets.SSH_KEY }}" > $HOME/.ssh/id_rsa
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> $HOME/.ssh/known_hosts
-          chmod -R go= $HOME/.ssh
+          ls -la $HOME/.ssh
 
       - name: Сheck docker on a server
         run: docker --host $DOCKER_HOST version
@@ -73,6 +73,6 @@ jobs:
       - name: Check on website
         shell: bash
         run: |
-          echo "${{ needs.build.outputs.image_tags }}"
+          echo "${BACKEND_IMAGE}"
           sleep 30
           curl -f https://${DOMAIN_NAME}
