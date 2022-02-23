@@ -152,18 +152,18 @@ stack-build:
 	build --compress backend
 
 stack-pull:
-	docker-compose --log-level ERROR \
+	docker-compose $(opts) --log-level ERROR \
 	-f ./docker-compose.yml -f ./docker-compose.stack.yml \
 	pull
 
 swarm:
 	docker $(opts) swarm init --advertise-addr eth0
 
-deploy: stack-pull secrets
+deploy: stack-pull
 	docker $(opts) stack deploy \
 	-c ./docker-compose.yml -c ./docker-compose.stack.yml portfolio
 
-secrets: stack-rm secrets-prune
+secrets:
 	make secret-create name=secrets.json
 	make secret-create name=db.env
 	# Secret creation completed.
@@ -189,10 +189,10 @@ stack-rm:
 	docker $(opts) stack rm portfolio
 
 stack-info:
-	docker $(opts) stack ps portfolio
+	docker $(opts) stack ps --no-trunc portfolio
 	docker $(opts) stack services portfolio
 
 service-logs:
-	docker $(opts) stack ps --filter "name=portfolio_$(s)" portfolio
-	docker $(opts) service logs --since 1m --no-task-ids -t --raw portfolio_$(s)
+	docker $(opts) service ps --no-trunc portfolio_$(s)
+	docker $(opts) service logs --no-trunc --no-task-ids -t --raw portfolio_$(s)
 

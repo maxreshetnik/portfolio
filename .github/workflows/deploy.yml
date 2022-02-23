@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tags: ${{ steps.image_id.outputs.image_tags }}
+      repo_name: ${{ steps.image_id.outputs.repo_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,39 +21,59 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
       - name: Set output image name and tags
         id: image_id
-        env:
-          docker_id: ${{ secrets.DOCKER_HUB_USERNAME }}
         shell: bash
         run: |
-          echo "::set-output name=image::${docker_id}/${GITHUB_REPOSITORY#*/}"
-          echo "::set-output name=image_tags::${docker_id}/${GITHUB_REPOSITORY#*/}:${GITHUB_SHA::8}"
+          echo "::set-output name=image::${GITHUB_REPOSITORY}"
+          echo "::set-output name=image_tags::${GITHUB_REPOSITORY}:${GITHUB_SHA::12}"
+          echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
 
       - name: Build, tag and push image to Docker Hub
         uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile
-          target: prod
-          builder: ${{ steps.buildx.outputs.name }}
-          push: true
-          tags: ${{ steps.image_id.outputs.image }}:latest,${{ steps.image_id.outputs.image_tags }}
-          cache-from: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache
-          cache-to: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache,mode=max
+        run: |
+          docker build --target prod -t ${{ steps.image_id.outputs.image_tags }} \
+          -t ${{ steps.image_id.outputs.image }}:latest .
+          docker image push --all-tags ${{ steps.image_id.outputs.image }}
 
   deployment:
     needs: build
     if: ${{ success() }}
     runs-on: ubuntu-latest
     environment: production
+    env:
+      BACKEND_IMAGE: ${{ needs.build.outputs.image_tags }}
+      DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+      SSL_EMAIL: ${{ secrets.SSL_EMAIL }}
+      DOCKER_HOST: ssh://${{ secrets.SSH_HOST }}
+      STACK_NAME: ${{ needs.build.outputs.repo_name }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Test
+
+    - name: Create ssh files
+      shell: bash
       run: |
-        echo "Check steps"
+        mkdir -p $HOME/.ssh
+        echo "${{ secrets.SSH_CONFIG }}" >> $HOME/.ssh/config
+        echo "${{ secrets.SSH_KEY }}" > $HOME/.ssh/id_rsa
+        ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> $HOME/.ssh/known_hosts
+        chmod -R go= $HOME/.ssh
+
+    - name: Сheck docker on a server
+      run: docker --host $DOCKER_HOST version
+
+    - name: Deploy
+      shell: bash
+      run: |
+        docker stack deploy --prune \
+	      -c ./docker-compose.yml -c ./docker-compose.stack.yml \
+        ${STACK_NAME}
+
+    - name: Check on website
+      shell: bash
+      run: |
         echo "${{ needs.build.outputs.image_tags }}"
+        sleep 30
+        curl -f https://${DOMAIN_NAME}
+
