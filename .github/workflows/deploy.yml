@@ -30,11 +30,10 @@ jobs:
           echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
 
       - name: Build, tag and push image to Docker Hub
-        uses: docker/build-push-action@v2
-        run: |
-          docker build --target prod -t ${{ steps.image_id.outputs.image_tags }} \
+        run: >
+          docker build --target prod -t ${{ steps.image_id.outputs.image_tags }} 
           -t ${{ steps.image_id.outputs.image }}:latest .
-          docker image push --all-tags ${{ steps.image_id.outputs.image }}
+          && docker image push --all-tags ${{ steps.image_id.outputs.image }}
 
   deployment:
     needs: build
@@ -65,10 +64,9 @@ jobs:
 
     - name: Deploy
       shell: bash
-      run: |
-        docker stack deploy --prune \
-	      -c ./docker-compose.yml -c ./docker-compose.stack.yml \
-        ${STACK_NAME}
+      run: >
+        docker stack deploy --prune -c ./docker-compose.yml 
+        -c ./docker-compose.stack.yml ${STACK_NAME}
 
     - name: Check on website
       shell: bash
