@@ -53,27 +53,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Create ssh dir
+      - name: Create ssh files
         shell: bash
         run: |
           mkdir -p $HOME/.ssh
-          chmod 700 $HOME/.ssh
-
-      - name: Create ssh config
-        shell: bash
-        run: echo -en "${{ secrets.SSH_CONFIG }}" >> $HOME/.ssh/config
-        
-      - name: Create ssh key file
-        shell: bash
-        run: echo -en "${{ secrets.SSH_KEY }}" > $HOME/.ssh/id_rsa
+          echo -en "${{ secrets.SSH_CONFIG }}" >> $HOME/.ssh/config
+          echo -en "${{ secrets.SSH_KEY }}" > $HOME/.ssh/id_rsa
+          echo "" >> $HOME/.ssh/known_hosts
+          chmod -R 700 $HOME/.ssh
+          ls -la $HOME/.ssh
 
       - name: Add server to ssh known_hosts
         shell: bash
         run: ssh-keyscan -H "${{ secrets.SSH_HOST_NAME }}" >> $HOME/.ssh/known_hosts
-
-      - name: List ssh files
-        shell: bash
-        run: ls -la $HOME/.ssh
 
       - name: Сheck docker on a server
         run: docker --host $DOCKER_HOST version
@@ -88,5 +80,5 @@ jobs:
         shell: bash
         run: |
           echo "${BACKEND_IMAGE}"
-          sleep 30
+          sleep 5m
           curl -f https://${DOMAIN_NAME}
