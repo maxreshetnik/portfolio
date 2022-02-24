@@ -1,4 +1,4 @@
-name: Deployment
+name: Test
 
 on:
   push:
@@ -13,9 +13,4 @@ jobs:
         uses: actions/checkout@v2
 
       - name: test
-        run: echo "$HOME"
-      - run: echo -en "${{ secrets.DOCKER_HUB_USERNAME }}" >> "$HOME/ddddd.txt"
-      - run: cat "$HOME/ddddd.txt"
-      - run: ls -la "$HOME"
-      - run: ssh
-
+        run: docker-compose --version
