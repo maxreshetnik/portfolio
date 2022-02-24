@@ -2,7 +2,7 @@ name: Test
 
 on:
   push:
-    branches: [ cicd ]
+    branches: [ test ]
 
 jobs:
 
@@ -14,3 +14,9 @@ jobs:
 
       - name: test
         run: docker-compose --version
+
+      - name: Add permissions
+        run: chmod -R +x .
+
+      - name: test permissions
+        run: ls -la

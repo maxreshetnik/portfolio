@@ -29,6 +29,9 @@ jobs:
           echo "::set-output name=image_tag::${GITHUB_SHA::12}"
           echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
 
+      - name: Add execute permissions for context files
+        run: chmod -R +x .
+
       - name: Build and tag images
         run: >
           docker build --target prod 
@@ -63,7 +66,7 @@ jobs:
           chmod -R 700 $HOME/.ssh
           ls -la $HOME/.ssh
 
-      - name: Add server to ssh known_hosts
+      - name: Add server to ssh known hosts
         shell: bash
         run: ssh-keyscan -H "${{ secrets.SSH_HOST_NAME }}" >> $HOME/.ssh/known_hosts
 
@@ -80,9 +83,3 @@ jobs:
         run: >
           docker stack deploy --prune -c ./docker-compose.yml 
           -c ./docker-compose.stack.yml ${STACK_NAME}
-
-      - name: Check on website
-        shell: bash
-        run: |
-          sleep 5m
-          curl -f https://${{ secrets.DOMAIN_NAME }}
