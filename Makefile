@@ -1,19 +1,21 @@
 ifeq ($(RACK_ENV), dev)
 name_prefix = example-
+DOMAIN_NAME ?= localhost
+SSL_EMAIL ?= admin@localhost
 endif
+
 RACK_ENV ?= prod
 SECRETS_DIR ?= ./conf
 backend_id = "$$(docker $(opts) ps | grep 'backend' | awk '{ print $$1 }')"
--include $(SECRETS_DIR)/$(name_prefix)web.env $(SECRETS_DIR)/$(name_prefix)db.env
 export DOMAIN_NAME SSL_EMAIL
 
-demo: db-check
+demo: db_check
 	./manage.py testserver --noinput example_shop_data.json
 
 .PHONY: admin collect db demo loaddata migrate runserver setup start test \
 build up prune down logs ps swarm deploy secrets
 
-runserver: dev-check
+runserver: dev_check
 	./manage.py runserver --nothreading
 
 start: collect
@@ -27,13 +29,13 @@ db:
 	DB_ENV_FILE=$(SECRETS_DIR)/$(name_prefix)db.env \
 	./conf/db-init-user.sh
 
-db-drop: dev-check
+db_drop: dev_check
 	psql --username "$(POSTGRES_USER)" --dbname "$(POSTGRES_DB)" \
 	-c "DROP DATABASE $(PORTFOLIO_DB_USER);"
 	psql --username "$(POSTGRES_USER)" --dbname "$(POSTGRES_DB)" \
 	-c "DROP USER $(PORTFOLIO_DB_USER);"
 
-setup: db-check migrate admin loaddata
+setup: db_check migrate admin loaddata
 
 admin:
 	DJANGO_SUPERUSER_PASSWORD=admin \
@@ -43,10 +45,10 @@ admin:
 collect:
 	./manage.py collectstatic --no-input
 
-db-check:
+db_check:
 	./manage.py check --database default
 
-dev-check:
+dev_check:
 ifneq ($(RACK_ENV), dev)
 	# Allowed only in a development environment, 
 	# set RACK_ENV variable to dev.
@@ -82,76 +84,76 @@ up:
 down:
 	docker-compose down
 
-down-v: dev-check
+down_v: dev_check
 	docker-compose down -v
 
 logs:
-	docker-compose logs --tail=10
+	docker-compose logs --tail=15
 
 ps:
 	docker-compose ps --all
 
-prune: dev-check
+prune: dev_check
 	docker-compose down -v --rmi all
 	docker $(opts) image prune -f
 
-backend-setup: dev-check backend-check-db backend-migrate-check
+backend_setup: dev_check backend_check_db backend_migrate_check
 ifneq (,$(media))
-	make backend-loadmedia src=$(media)
+	make backend_loadmedia src=$(media)
 endif
-	make backend-loaddata src=$(data)
-	@make backend-admin vars="DJANGO_SUPERUSER_PASSWORD=admin" \
+	make backend_loaddata src=$(data)
+	@make backend_admin vars="DJANGO_SUPERUSER_PASSWORD=admin" \
 	args="--email admin@admin.com --noinput"
 
-backend-admin:
+backend_admin:
 	@docker $(opts) exec -it $(backend_id) \
 	bash -c ' $(vars) ./manage.py createsuperuser --username admin $(args)'
 
-backend-migrate: backend-check-db
+backend_migrate: backend_check_db
 	docker $(opts) exec -it $(backend_id) \
 	./manage.py makemigrations && ./manage.py migrate
 
-backend-migrate-check:
+backend_migrate_check:
 	docker $(opts) exec -it $(backend_id) \
 	./manage.py migrate --check
 
-backend-check: backend-check-db backend-check-deploy
+backend_check: backend_check_db backend_check_deploy
 			
-backend-check-db:
+backend_check_db:
 	docker $(opts) exec -it $(backend_id) \
 	./manage.py check --database default
 			
-backend-check-deploy:
+backend_check_deploy:
 	docker $(opts) exec -it $(backend_id) \
 	./manage.py check --deploy
 
-backend-loaddata:
+backend_loaddata:
 	docker $(opts) cp "$(src)" $(backend_id):/home/portfolio/data.json
 	docker $(opts) exec -it $(backend_id) \
 	./manage.py loaddata /home/portfolio/data.json ; \
 	docker $(opts) exec -it $(backend_id) \
 	rm /home/portfolio/data.json
 
-backend-loadmedia:
+backend_loadmedia:
 	docker $(opts) cp "$(src)" $(backend_id):/home/portfolio/
 	
-backend-test:
+backend_test:
 	docker $(opts) exec -it $(backend_id) \
 	./manage.py test --verbosity 2
 
 # Docker Swarm targets, for prod.
 # docker-compose.yml and docker-compose.stack.yml files.
-stack-push: stack-build
+stack_push: stack_build
 	docker-compose --log-level ERROR \
 	-f ./docker-compose.yml -f ./docker-compose.stack.yml \
 	push backend
 
-stack-build:
+stack_build:
 	docker-compose --log-level ERROR \
 	-f ./docker-compose.yml -f ./docker-compose.stack.yml \
 	build --compress backend
 
-stack-pull:
+stack_pull:
 	docker-compose $(opts) --log-level ERROR \
 	-f ./docker-compose.yml -f ./docker-compose.stack.yml \
 	pull
@@ -159,40 +161,47 @@ stack-pull:
 swarm:
 	docker $(opts) swarm init --advertise-addr eth0
 
-deploy: stack-pull
-	docker $(opts) stack deploy \
+deploy: stack_pull
+	docker $(opts) stack deploy --prune \
 	-c ./docker-compose.yml -c ./docker-compose.stack.yml portfolio
 
 secrets:
-	make secret-create name=secrets.json
-	make secret-create name=db.env
+	make secret_create name=secrets.json
+	make secret_create name=db.env
 	# Secret creation completed.
 
-secrets-prune: stack-rm
-	make secret-rm name=secrets.json
-	make secret-rm name=db.env
+secrets_prune: stack_rm
+	make secret_rm name=secrets.json
+	make secret_rm name=db.env
 	# Cleaning up secrets is complete.
 
-secret-rm:
+secret_rm:
 	docker $(opts) secret rm portfolio_$(name) || echo "error $$?"
 	
-secret-create:
+secret_create:
 	docker $(opts) secret create --label env=$(RACK_ENV) \
 	--label rev="$$(date +"%Y%m%d")" \
 	portfolio_$(name) $(SECRETS_DIR)/$(name_prefix)$(name)
 
-stack-prune: dev-check stack-rm secrets-prune
+stack_prune: dev_check stack_rm secrets_prune
 	docker $(opts) image prune --all -f
 	docker $(opts) volume prune -f
 
-stack-rm:
+stack_rm:
 	docker $(opts) stack rm portfolio
 
-stack-info:
+stack_info:
 	docker $(opts) stack ps --no-trunc portfolio
 	docker $(opts) stack services portfolio
+	docker $(opts) ps
 
-service-logs:
+service_logs:
 	docker $(opts) service ps --no-trunc portfolio_$(s)
-	docker $(opts) service logs --no-trunc --no-task-ids -t --raw portfolio_$(s)
+	docker $(opts) service logs --no-trunc --no-task-ids \
+	-n 15 -t --details portfolio_$(s)
+	docker logs -n 50 "$$(docker $(opts) ps | grep '$(s)' | awk '{ print $$1 }')"
+
+service_exec:
+	docker $(opts) exec -it \
+	"$$(docker $(opts) ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
 

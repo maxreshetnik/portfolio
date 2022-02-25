@@ -39,6 +39,16 @@ services:
       - ssl_files:/etc/nginx/ssl
     depends_on:
       - backend
+      - ssl
+
+  ssl:
+    image: certbot/certbot:latest
+    entrypoint: ["/ssl-entrypoint.sh", "certbot"]
+    command: ["certonly"]
+    environment:
+      - SSL_DIR=/etc/letsencrypt
+    volumes:
+      - ssl_files:/etc/letsencrypt
 
 volumes:
   media:

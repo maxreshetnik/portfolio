@@ -6,7 +6,7 @@
 		"./docker-compose.dev.yml"
 	],
 	"service": "backend",
-	"runServices": ["backend", "db", "cache"],
+	"runServices": ["backend", "db"],
 	"workspaceFolder": "/workspace",
 	"remoteUser": "portfolio",
 	// "remoteUser": "root",

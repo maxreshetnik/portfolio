@@ -45,10 +45,9 @@ ENV PATH="${USER_DIR}/.local/bin:${PATH}" \
     PROJECT_DATA_DIR=$USER_DIR \
     DJANGO_SETTINGS_MODULE=portfolio.settings.prod
 VOLUME ["${PROJECT_DATA_DIR}/media", "${PROJECT_DATA_DIR}/static"]
-HEALTHCHECK --interval=10m --timeout=3s \
+HEALTHCHECK --interval=1m --timeout=3s \
     CMD curl -f http://localhost:8000/ || exit 1
-ENTRYPOINT ["./conf/backend-entrypoint.sh"]
-CMD ["gunicorn", "portfolio.wsgi"]
+ENTRYPOINT ["./conf/backend-entrypoint.sh", "gunicorn", "portfolio.wsgi"]
 
 FROM prod AS dev
 USER root
@@ -65,4 +64,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     GUNICORN_CMD_ARGS="--bind=0.0.0.0:8000 --reload --access-logfile -" \
     PROJECT_SECRETS_FILE="${PROJECT_DIR}/conf/example-secrets.json" \
     RACK_ENV="dev"
+ENTRYPOINT ["./conf/backend-entrypoint.sh"]
+CMD ["gunicorn", "portfolio.wsgi"]
 HEALTHCHECK NONE

@@ -1,8 +1,10 @@
 #!/bin/sh
 
+trap "certbot TRAPed signal" HUP INT QUIT TERM
+
 set -eu
 
-openssl version || return 0
+openssl version
 
 SSL_CRT_FILE="${SSL_DIR}/live/${DOMAIN_NAME}/fullchain.pem"
 SSL_KEY_FILE="${SSL_DIR}/live/${DOMAIN_NAME}/privkey.pem"
@@ -36,10 +38,15 @@ cat > "${SSL_OPTS_FILE}" <<EOF
 EOF
 fi
 
-if [ "$1" = 'certbot' ]; then
-    trap "certbot TRAPed signal" HUP INT QUIT TERM
-    mkdir -p "${SSL_WEBROOT}/${DOMAIN_NAME}"
-    echo "certbot verification and obtaining certificates"
+if [[ "$1" = 'certbot' && "$DOMAIN_NAME" != 'localhost' ]]; then
+
+    mkdir -p "${SSL_WEBROOT}/${DOMAIN_NAME}/.well-known/acme-challenge"
+    echo "" >> "${SSL_WEBROOT}/${DOMAIN_NAME}/.well-known/acme-challenge/test.html"
+    
+    echo "Check if the webroot directory is online."
+    wget --spider "http://${DOMAIN_NAME}/.well-known/acme-challenge/test.html"
+    echo "Waiting for 10m window ..." && sleep 10m
+    echo "Try certbot verification and obtaining certificates"
     while true
     do
         "$@" --webroot -w "${SSL_WEBROOT}/${DOMAIN_NAME}" \
@@ -48,7 +55,9 @@ if [ "$1" = 'certbot' ]; then
         --agree-tos --no-eff-email --noninteractive \
         --keep-until-expiring
 
-        echo "certbot waits 12h before the next check and install of certificates."
+        echo "certbot waits for 12h before the next certificate check and install."
         sleep 12h
     done
 fi
+echo "Certbot won't start on localhost domain name, waiting for 12 hours before exit ..."
+sleep 12h

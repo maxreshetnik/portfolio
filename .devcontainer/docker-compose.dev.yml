@@ -17,6 +17,8 @@ services:
       - RACK_ENV=dev
       - DJANGO_SETTINGS_MODULE=portfolio.settings.dev
       - PGHOST=localhost
+    env_file:
+      - ./conf/example-db.env
     command: sleep infinity
     container_name: portfolio_backend_dev
     restart: unless-stopped
@@ -40,14 +42,20 @@ services:
     restart: unless-stopped
 
   cache:
-    container_name: portfolio_backend_cache
+    container_name: portfolio_cache_dev
     restart: unless-stopped
 
   web:
-    container_name: portfolio_backend_web
+    container_name: portfolio_web_dev
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+
+  ssl:
+    container_name: portfolio_ssl_dev
     restart: unless-stopped
 
 networks:
   default:
-    name: portfolio_dev_net
+    name: portfolio_net_dev
     

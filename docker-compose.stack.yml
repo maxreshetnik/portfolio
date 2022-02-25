@@ -13,6 +13,15 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+      rollback_config:
+        parallelism: 1
+        delay: 20s
+        monitor: 30s
+      update_config:
+        parallelism: 1
+        delay: 20s
+        failure_action: rollback
+        monitor: 30s
 
   db:
     configs:
@@ -27,6 +36,9 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+      update_config:
+        parallelism: 1
+        failure_action: rollback
 
   web:
     configs:
@@ -40,38 +52,43 @@ services:
       replicas: 1
       restart_policy:
         condition: any
-        delay: 30s
+        delay: 1m
+      update_config:
+        parallelism: 1
+        delay: 1m
+        failure_action: rollback
 
   ssl:
-    image: certbot/certbot:latest
-    entrypoint: ["/ssl-nginx-entrypoint.sh", "certbot"]
-    command: ["certonly"]
     configs:
-      - source: ssl_nginx_entrypoint.sh
-        target: /ssl-nginx-entrypoint.sh
+      - source: ssl_entrypoint.sh
+        target: /ssl-entrypoint.sh
         mode: 0555
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME:?err}
       - SSL_EMAIL=${SSL_EMAIL:?err}
-      - SSL_DIR=/etc/letsencrypt
-    volumes:
-      - ssl_files:/etc/letsencrypt
     deploy:
       mode: replicated
       replicas: 1
+      placement:
+        constraints:
+          - "node.role==manager"
       restart_policy:
         condition: on-failure
         delay: 60s
-        max_attempts: 5
-        window: 120s
+        max_attempts: 3
+        window: 10m
+      update_config:
+        parallelism: 1
+        delay: 60s
+        failure_action: rollback
 
 configs:
   db_init_user.sh:
     file: ./conf/db-init-user.sh
   nginx_default.conf.template:
     file: ./conf/nginx-default.conf.template
-  ssl_nginx_entrypoint.sh:
-    file: ./conf/ssl-nginx-entrypoint.sh
+  ssl_entrypoint.sh:
+    file: ./conf/ssl-entrypoint.sh
 
 secrets:
   secrets.json:

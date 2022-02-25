@@ -21,10 +21,16 @@ services:
       - DB_ENV_FILE=/example-db.env
 
   web:
-    image: "nginx:latest"
     restart: always
     volumes:
       - ./conf/nginx-default.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ./conf/ssl-nginx-entrypoint.sh:/docker-entrypoint.d/ssl-nginx-entrypoint.sh:ro
-    env_file:
-      - ./conf/example-web.env
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
+
+  ssl:
+    restart: always
+    volumes:
+      - ./conf/ssl-entrypoint.sh:/ssl-entrypoint.sh:ro
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
+      - SSL_EMAIL
