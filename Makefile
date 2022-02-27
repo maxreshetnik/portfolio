@@ -121,11 +121,11 @@ backend_migrate_check:
 backend_check: backend_check_db backend_check_deploy
 			
 backend_check_db:
-	docker exec -it $(backend_id) \
+	docker exec $(backend_id) \
 	./manage.py check --database default
 			
 backend_check_deploy:
-	docker exec -it $(backend_id) \
+	docker exec $(backend_id) \
 	./manage.py check --deploy
 
 backend_loaddata:
@@ -139,7 +139,7 @@ backend_loadmedia:
 	docker cp "$(src)" $(backend_id):/home/$(PROJECT_NAME)/
 	
 backend_test:
-	docker exec -it $(backend_id) \
+	docker exec $(backend_id) \
 	./manage.py test --verbosity 2
 
 # Docker Swarm targets, for prod.
@@ -181,7 +181,7 @@ secret_rm:
 	
 secret_create:
 	docker secret create --label env=$(RACK_ENV) \
-	--label rev="$$(date +"%Y%m%d")" \
+	--label rev="$$(date +'%Y%m%d')" \
 	$(PROJECT_NAME)_$(name) $(SECRETS_DIR)/$(name_prefix)$(name)
 
 stack_prune: dev_check stack_rm secrets_prune
@@ -199,8 +199,8 @@ stack_info:
 service_logs:
 	docker service ps --no-trunc $(PROJECT_NAME)_$(s)
 	docker service logs --no-trunc --no-task-ids \
-	-n 15 -t --details $(PROJECT_NAME)_$(s)
-	docker logs -n 15 "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')"
+	-n 10 -t --details $(PROJECT_NAME)_$(s)
+	docker logs -n 20 "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')"
 
 service_exec:
 	docker exec -it \

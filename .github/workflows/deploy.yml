@@ -2,7 +2,7 @@ name: Deployment
 
 on:
   push:
-    branches: [ cicd ]
+    branches: [ master ]
 
 jobs:
 
@@ -89,3 +89,14 @@ jobs:
           BACKEND_IMAGE: "${{ github.repository }}:${{ needs.build.outputs.image_tag }}"
         shell: bash
         run: make deploy || ( make stack_rm ; sleep 10 ; make deploy )
+
+      - name: Healthcheck
+        env:
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+        shell: bash
+        run: |
+          make deploy || ( make stack_rm ; sleep 10 ; make deploy )
+          sleep 5m
+          curl -f http://${DOMAIN_NAME}
+          curl -f https://${DOMAIN_NAME} || make service_update s=web
+          sleep 30 && curl -f https://${DOMAIN_NAME}

@@ -49,6 +49,14 @@ jobs:
         shell: bash
         run: docker swarm join-token worker || make swarm
 
+      - name: Add docker secrets
+        env:
+          RACK_ENV: dev
+        shell: bash
+        run: |
+          make secrets_prune
+          make secrets
+
       - name: Test deploy
         env:
           DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
@@ -57,8 +65,7 @@ jobs:
           BACKEND_IMAGE: "${{ github.repository }}:latest"
         shell: bash
         run: |
-          make secrets name_prefix=example-
           make deploy
-          curl --version
-          sleep 5m && curl -f http://localhost:8080
+          sleep 3m
+          curl -f http://localhost
           make secrets_prune
