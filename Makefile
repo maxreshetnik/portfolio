@@ -4,9 +4,10 @@ DOMAIN_NAME ?= localhost
 SSL_EMAIL ?= admin@localhost
 endif
 
+PROJECT_NAME ?= portfolio
 RACK_ENV ?= prod
 SECRETS_DIR ?= ./conf
-backend_id = "$$(docker $(opts) ps | grep 'backend' | awk '{ print $$1 }')"
+backend_id = "$$(docker ps | grep 'backend' | awk '{ print $$1 }')"
 export DOMAIN_NAME SSL_EMAIL
 
 demo: db_check
@@ -20,10 +21,10 @@ runserver: dev_check
 
 start: collect
 ifeq (,$(GUNICORN_CMD_ARGS))
-	gunicorn --bind=127.0.0.1:8000 --reload --access-logfile - portfolio.wsgi
+	gunicorn --bind=127.0.0.1:8000 --reload --access-logfile - $(PROJECT_NAME).wsgi
 endif
 	# GUNICORN_CMD_ARGS=$(GUNICORN_CMD_ARGS)
-	gunicorn portfolio.wsgi
+	gunicorn $(PROJECT_NAME).wsgi
 
 db:
 	DB_ENV_FILE=$(SECRETS_DIR)/$(name_prefix)db.env \
@@ -95,7 +96,7 @@ ps:
 
 prune: dev_check
 	docker-compose down -v --rmi all
-	docker $(opts) image prune -f
+	docker image prune -f
 
 backend_setup: dev_check backend_check_db backend_migrate_check
 ifneq (,$(media))
@@ -106,39 +107,39 @@ endif
 	args="--email admin@admin.com --noinput"
 
 backend_admin:
-	@docker $(opts) exec -it $(backend_id) \
+	@docker exec -it $(backend_id) \
 	bash -c ' $(vars) ./manage.py createsuperuser --username admin $(args)'
 
 backend_migrate: backend_check_db
-	docker $(opts) exec -it $(backend_id) \
+	docker exec -it $(backend_id) \
 	./manage.py makemigrations && ./manage.py migrate
 
 backend_migrate_check:
-	docker $(opts) exec -it $(backend_id) \
+	docker exec -it $(backend_id) \
 	./manage.py migrate --check
 
 backend_check: backend_check_db backend_check_deploy
 			
 backend_check_db:
-	docker $(opts) exec -it $(backend_id) \
+	docker exec -it $(backend_id) \
 	./manage.py check --database default
 			
 backend_check_deploy:
-	docker $(opts) exec -it $(backend_id) \
+	docker exec -it $(backend_id) \
 	./manage.py check --deploy
 
 backend_loaddata:
-	docker $(opts) cp "$(src)" $(backend_id):/home/portfolio/data.json
-	docker $(opts) exec -it $(backend_id) \
-	./manage.py loaddata /home/portfolio/data.json ; \
-	docker $(opts) exec -it $(backend_id) \
-	rm /home/portfolio/data.json
+	docker cp $(src) $(backend_id):/home/$(PROJECT_NAME)/data.json
+	docker exec -it $(backend_id) \
+	./manage.py loaddata /home/$(PROJECT_NAME)/data.json ; \
+	docker exec -it $(backend_id) \
+	rm /home/$(PROJECT_NAME)/data.json
 
 backend_loadmedia:
-	docker $(opts) cp "$(src)" $(backend_id):/home/portfolio/
+	docker cp "$(src)" $(backend_id):/home/$(PROJECT_NAME)/
 	
 backend_test:
-	docker $(opts) exec -it $(backend_id) \
+	docker exec -it $(backend_id) \
 	./manage.py test --verbosity 2
 
 # Docker Swarm targets, for prod.
@@ -151,19 +152,19 @@ stack_push: stack_build
 stack_build:
 	docker-compose --log-level ERROR \
 	-f ./docker-compose.yml -f ./docker-compose.stack.yml \
-	build --compress backend
+	build --compress
 
 stack_pull:
-	docker-compose $(opts) --log-level ERROR \
+	docker-compose --log-level ERROR \
 	-f ./docker-compose.yml -f ./docker-compose.stack.yml \
 	pull
 
 swarm:
-	docker $(opts) swarm init --advertise-addr eth0
+	docker swarm init --advertise-addr eth0
 
 deploy: stack_pull
-	docker $(opts) stack deploy --prune \
-	-c ./docker-compose.yml -c ./docker-compose.stack.yml portfolio
+	docker stack deploy --prune \
+	-c ./docker-compose.yml -c ./docker-compose.stack.yml $(PROJECT_NAME)
 
 secrets:
 	make secret_create name=secrets.json
@@ -176,32 +177,35 @@ secrets_prune: stack_rm
 	# Cleaning up secrets is complete.
 
 secret_rm:
-	docker $(opts) secret rm portfolio_$(name) || echo "error $$?"
+	docker secret rm $(PROJECT_NAME)_$(name) || echo "error $$?"
 	
 secret_create:
-	docker $(opts) secret create --label env=$(RACK_ENV) \
+	docker secret create --label env=$(RACK_ENV) \
 	--label rev="$$(date +"%Y%m%d")" \
-	portfolio_$(name) $(SECRETS_DIR)/$(name_prefix)$(name)
+	$(PROJECT_NAME)_$(name) $(SECRETS_DIR)/$(name_prefix)$(name)
 
 stack_prune: dev_check stack_rm secrets_prune
-	docker $(opts) image prune --all -f
-	docker $(opts) volume prune -f
+	docker image prune --all -f
+	docker volume prune -f
 
 stack_rm:
-	docker $(opts) stack rm portfolio
+	docker stack rm $(PROJECT_NAME)
 
 stack_info:
-	docker $(opts) stack ps --no-trunc portfolio
-	docker $(opts) stack services portfolio
-	docker $(opts) ps
+	docker stack ps --no-trunc $(PROJECT_NAME)
+	docker stack services $(PROJECT_NAME)
+	docker ps
 
 service_logs:
-	docker $(opts) service ps --no-trunc portfolio_$(s)
-	docker $(opts) service logs --no-trunc --no-task-ids \
-	-n 15 -t --details portfolio_$(s)
-	docker logs -n 50 "$$(docker $(opts) ps | grep '$(s)' | awk '{ print $$1 }')"
+	docker service ps --no-trunc $(PROJECT_NAME)_$(s)
+	docker service logs --no-trunc --no-task-ids \
+	-n 15 -t --details $(PROJECT_NAME)_$(s)
+	docker logs -n 15 "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')"
 
 service_exec:
-	docker $(opts) exec -it \
-	"$$(docker $(opts) ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
+	docker exec -it \
+	"$$(docker ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
+
+service_update:
+	docker service update --force $(opts) $(PROJECT_NAME)_$(s)
 

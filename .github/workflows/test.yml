@@ -2,21 +2,63 @@ name: Test
 
 on:
   push:
-    branches: [ test ]
+    branches: [ cicd ]
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.image_id.outputs.image_tag }}
+      repo_name: ${{ steps.image_id.outputs.repo_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: test
-        run: docker-compose --version
+      - name: Set output image name and tags
+        id: image_id
+        shell: bash
+        run: |
+          echo "::set-output name=image::${GITHUB_REPOSITORY}"
+          echo "::set-output name=image_tag::${GITHUB_SHA::12}"
+          echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
 
-      - name: Add permissions
+      - name: Add execute permissions for context files
         run: chmod -R +x .
 
-      - name: test permissions
-        run: ls -la
+      - name: Build and test images
+        env:
+          BACKEND_IMAGE: ${{ steps.image_id.outputs.image }}:${{ steps.image_id.outputs.image_tag }}
+        run: |
+          make stack_build DOMAIN_NAME=localhost SSL_EMAIL=localhost
+          docker-compose up -d backend
+          make backend_test
+          docker-compose down -v
+          docker tag ${BACKEND_IMAGE} ${{ steps.image_id.outputs.image }}:latest
+
+  test:
+    needs: build
+    if: ${{ success() }}
+    runs-on: ubuntu-latest
+    environment: stage
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Switch to swarm
+        shell: bash
+        run: docker swarm join-token worker || make swarm
+
+      - name: Test deploy
+        env:
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+          SSL_EMAIL: ${{ secrets.SSL_EMAIL }}
+          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
+          BACKEND_IMAGE: "${{ github.repository }}:latest"
+        shell: bash
+        run: |
+          make secrets name_prefix=example-
+          make deploy
+          curl --version
+          sleep 5m && curl -f http://localhost:8080
+          make secrets_prune

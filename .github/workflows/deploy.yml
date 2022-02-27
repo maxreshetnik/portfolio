@@ -15,12 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
       - name: Set output image name and tags
         id: image_id
         shell: bash
@@ -32,17 +26,33 @@ jobs:
       - name: Add execute permissions for context files
         run: chmod -R +x .
 
-      - name: Build and tag images
-        run: >
-          docker build --target prod 
-          -t ${{ steps.image_id.outputs.image }}:${{ steps.image_id.outputs.image_tag }}
-          -t ${{ steps.image_id.outputs.image }}:latest .
+      - name: Build and test images
+        env:
+          BACKEND_IMAGE: ${{ steps.image_id.outputs.image }}:${{ steps.image_id.outputs.image_tag }}
+        run: |
+          make stack_build DOMAIN_NAME=localhost SSL_EMAIL=localhost
+          docker tag ${BACKEND_IMAGE} ${{ steps.image_id.outputs.image }}:latest
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Push images to Docker Hub
         run: docker image push --all-tags ${{ steps.image_id.outputs.image }}
 
-  deployment:
+  test:
     needs: build
+    if: ${{ success() }}
+    runs-on: ubuntu-latest
+    environment: stage
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+  deployment:
+    needs: [build, test]
     if: ${{ success() }}
     runs-on: ubuntu-latest
     environment: production
@@ -66,16 +76,16 @@ jobs:
         shell: bash
         run: ssh-keyscan -H "${{ secrets.SSH_HOST_NAME }}" >> $HOME/.ssh/known_hosts
 
-      - name: Сheck docker on a server
-        run: docker --host $DOCKER_HOST version
+      - name: Сheck docker and compose on a server
+        run: |
+          docker --host $DOCKER_HOST version
+          docker-compose --host $DOCKER_HOST version
 
       - name: Deploy
         env:
           DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
           SSL_EMAIL: ${{ secrets.SSL_EMAIL }}
-          STACK_NAME: ${{ needs.build.outputs.repo_name }}
+          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
           BACKEND_IMAGE: "${{ github.repository }}:${{ needs.build.outputs.image_tag }}"
         shell: bash
-        run: >
-          docker stack deploy --prune -c ./docker-compose.yml 
-          -c ./docker-compose.stack.yml ${STACK_NAME}
+        run: make deploy || ( make stack_rm ; sleep 10 ; make deploy )
