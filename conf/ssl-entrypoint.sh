@@ -55,7 +55,7 @@ if [[ "$1" = 'certbot' && "$DOMAIN_NAME" != 'localhost' ]]; then
         -d "${DOMAIN_NAME}" -d "www.${DOMAIN_NAME}" \
         --agree-tos --no-eff-email --noninteractive \
         --keep-until-expiring --expand \
-        cp -rfP ${CRT_DIR}-signed/* ${CRT_DIR}
+        && cp -rfP ${CRT_DIR}-signed/* ${CRT_DIR}
     ) || (
         echo "Certbot can't get a certificate, use --dry-run option for testing." ;
         echo "wait for 1h before exit" ; sleep 1h ; exit 1
