@@ -14,7 +14,7 @@ demo: db_check
 	./manage.py testserver --noinput example_shop_data.json
 
 .PHONY: admin collect db demo loaddata migrate runserver setup start test \
-build up prune down logs ps swarm deploy secrets
+build pull up prune down logs ps swarm deploy secrets
 
 runserver: dev_check
 	./manage.py runserver --nothreading
@@ -77,10 +77,13 @@ endif
 # Docker and compose targets, for example and testing.
 # docker-compose.yml and docker-compose.override.yml files
 build:
-	docker-compose build
+	DOCKER_BUILDKIT=1 docker-compose build $(s)
+
+pull:
+	docker-compose pull $(s)
 
 up:
-	docker-compose up -d
+	docker-compose up -d $(s)
 
 down:
 	docker-compose down
@@ -98,7 +101,7 @@ prune: dev_check
 	docker-compose down -v --rmi all
 	docker image prune -f
 
-backend_setup: dev_check backend_check_db backend_migrate_check
+backend_setup: dev_check backend_migrate
 ifneq (,$(media))
 	make backend_loadmedia src=$(media)
 endif
@@ -111,12 +114,13 @@ backend_admin:
 	bash -c ' $(vars) ./manage.py createsuperuser --username admin $(args)'
 
 backend_migrate: backend_check_db
-	docker exec -it $(backend_id) \
+	@docker exec -i $(backend_id) \
 	./manage.py makemigrations && ./manage.py migrate
 
-backend_migrate_check:
-	docker exec -it $(backend_id) \
-	./manage.py migrate --check
+backend_migrations_check:
+	# Check migrations
+	@docker exec $(backend_id) \
+	./manage.py makemigrations --check --dry-run
 
 backend_check: backend_check_db backend_check_deploy
 			
@@ -130,17 +134,41 @@ backend_check_deploy:
 
 backend_loaddata:
 	docker cp $(src) $(backend_id):/home/$(PROJECT_NAME)/data.json
-	docker exec -it $(backend_id) \
+	@docker exec -it $(backend_id) \
 	./manage.py loaddata /home/$(PROJECT_NAME)/data.json ; \
-	docker exec -it $(backend_id) \
+	@docker exec -it $(backend_id) \
 	rm /home/$(PROJECT_NAME)/data.json
 
 backend_loadmedia:
 	docker cp "$(src)" $(backend_id):/home/$(PROJECT_NAME)/
 	
-backend_test:
-	docker exec $(backend_id) \
+backend_test: backend_migrations_check
+	# Run test
+	@docker exec $(backend_id) \
 	./manage.py test --verbosity 2
+		
+backend_test_cov: backend_migrations_check
+	# Run tests
+	@docker exec $(backend_id) \
+	coverage run --source=. manage.py test --verbosity 2
+	# coverage report
+	@docker exec $(backend_id) coverage report
+
+backend_lint:
+	# stop the build if there are Python syntax errors or undefined names
+	@docker exec $(backend_id) \
+	flake8 . --select=E9,F63,F7,F82 --show-source
+	# exit-zero treats all errors as warnings.
+	@docker exec $(backend_id) \
+	flake8 . --exit-zero
+
+ssl_check: web_check
+	@wget --connect-timeout=300 --read-timeout=300 \
+	--spider https://$(DOMAIN_NAME)
+
+web_check:
+	@wget --connect-timeout=300 --read-timeout=300 \
+	--no-check-certificate --spider https://$(DOMAIN_NAME)
 
 # Docker Swarm targets, for prod.
 # docker-compose.yml and docker-compose.stack.yml files.
@@ -150,7 +178,7 @@ stack_push: stack_build
 	push backend
 
 stack_build:
-	docker-compose --log-level ERROR \
+	DOCKER_BUILDKIT=1 docker-compose --log-level ERROR \
 	-f ./docker-compose.yml -f ./docker-compose.stack.yml \
 	build --compress
 

@@ -80,15 +80,15 @@ class OrderForm(ModelForm):
         order = self.instance
         if order.pk is None:
             if status != order.CART:
-                raise ValidationError(f'First, create an order with a '
-                                      f'cart status then add products.')
+                raise ValidationError('First, create an order with a '
+                                      'cart status then add products.')
         else:
             qs = self._meta.model.objects.filter(
                 user=order.user, status=order.CART,
             ).exclude(pk=order.pk)
             if status == order.CART and qs.exists():
                 raise ValidationError(f"User {order.user} already has "
-                                      f"an order with a cart status.")
+                                      "an order with a cart status.")
         return status
 
     def clean_order_cost(self):
@@ -98,7 +98,7 @@ class OrderForm(ModelForm):
         if self.instance.reserved or cost == self.get_current_cost():
             return cost
         else:
-            raise ValidationError(f'Some items have changed in price',
+            raise ValidationError('Some items have changed in price',
                                   code='price')
 
     def clean(self):
@@ -167,12 +167,14 @@ class OrderItemForm(ModelForm):
         if commit:
             if obj.quantity > 0:
                 obj = self._meta.model.objects.update_or_create(
-                    order_id=obj.order_id, specification_id=obj.specification_id,
+                    order_id=obj.order_id,
+                    specification_id=obj.specification_id,
                     defaults={'quantity': obj.quantity, 'price': obj.price},
                 )[0]
             else:
                 self._meta.model.objects.filter(
-                    order_id=obj.order_id, specification_id=obj.specification.id,
+                    order_id=obj.order_id,
+                    specification_id=obj.specification.id,
                 ).delete()
         return obj
 

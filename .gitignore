@@ -3,6 +3,7 @@
 !.github/
 !.devcontainer/
 !.dockerignore
+!.coveragerc
 *.py[co]
 *.sqlite3
 *.egg-info

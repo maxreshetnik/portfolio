@@ -7,6 +7,8 @@ services:
       context: ./
       dockerfile: ./Dockerfile
       target: prod
+      cache_from: 
+        - maxreshetnik/portfolio:buildcache
     image: ${BACKEND_IMAGE:-maxreshetnik/portfolio:latest}
     volumes:
       - media:/home/portfolio/media
@@ -27,6 +29,7 @@ services:
   web:
     image: nginx:alpine
     environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
       - APP_SERVER_LOCATION=backend:8000
       - SSL_DIR=/etc/nginx/ssl
     ports:
@@ -46,7 +49,9 @@ services:
     entrypoint: ["/ssl-entrypoint.sh", "certbot"]
     command: ["certonly"]
     environment:
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
       - SSL_DIR=/etc/letsencrypt
+      - SSL_EMAIL
     volumes:
       - ssl_files:/etc/letsencrypt
 

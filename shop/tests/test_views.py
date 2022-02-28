@@ -251,12 +251,15 @@ class SearchViewTests(TestCase):
              f'{product.marking}')
         response = self.client.get(reverse('shop:search'), {'q': q})
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        spec_list = list(response.context[views.SearchView.context_object_name])
-        self.assertTrue(spec_list, msg='The search did not find any products.')
+        spec_list = list(
+            response.context[views.SearchView.context_object_name]
+        )
+        self.assertTrue(spec_list, msg="The search didn't find any products.")
         self.assertEqual(
             spec_list[0].object_id, product.id,
-            msg=(f'"{product}" should come first on the list as best matching'
-                 f'the query "{q}". Results: {", ".join(map(str, spec_list))}'),
+            msg=(f'"{product}" should comes first on the list '
+                 f'as best matching the query "{q}". '
+                 f'Results: {", ".join(map(str, spec_list))}'),
         )
 
     def test_product_search_result(self):
@@ -272,10 +275,13 @@ class SearchViewTests(TestCase):
         q = f'{product.name} {product.marking} {spec.tag}'
         response = self.client.get(reverse('shop:search'), {'q': q})
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        spec_list = list(response.context[views.SearchView.context_object_name])
-        self.assertTrue(spec_list, msg='The search did not find any products.')
+        spec_list = list(
+            response.context[views.SearchView.context_object_name]
+        )
+        self.assertTrue(spec_list, msg="The search didn't find any products.")
         self.assertEqual(
             spec_list[0].id, spec.id,
-            msg=(f'"{spec}" should come first on the list as best matching'
-                 f'the query "{q}". Results: {", ".join(map(str, spec_list))}'),
+            msg=(f'"{spec}" should comes first on the list '
+                 f'as best matching the query "{q}". '
+                 f'Results: {", ".join(map(str, spec_list))}'),
         )

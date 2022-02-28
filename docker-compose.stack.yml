@@ -45,8 +45,6 @@ services:
       - source: nginx_default.conf.template
         target: /etc/nginx/templates/default.conf.template
         mode: 0444
-    environment:
-      - DOMAIN_NAME=${DOMAIN_NAME:?err}
     deploy:
       mode: replicated
       replicas: 1
@@ -63,9 +61,6 @@ services:
       - source: ssl_entrypoint.sh
         target: /ssl-entrypoint.sh
         mode: 0555
-    environment:
-      - DOMAIN_NAME=${DOMAIN_NAME:?err}
-      - SSL_EMAIL=${SSL_EMAIL:?err}
     deploy:
       mode: replicated
       replicas: 1

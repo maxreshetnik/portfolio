@@ -2,8 +2,10 @@ name: Deployment
 
 on:
   push:
-    branches: [ master ]
-
+    branches:
+      - 'master'
+    tags:        
+      - '*'
 jobs:
 
   build:
@@ -19,18 +21,18 @@ jobs:
         id: image_id
         shell: bash
         run: |
-          echo "::set-output name=image::${GITHUB_REPOSITORY}"
+          echo "::set-output name=image::${{ secrets.DOCKER_HUB_USERNAME }}/${GITHUB_REPOSITORY#*/}"
           echo "::set-output name=image_tag::${GITHUB_SHA::12}"
           echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
 
       - name: Add execute permissions for context files
         run: chmod -R +x .
 
-      - name: Build and test images
+      - name: Build and tag
         env:
           BACKEND_IMAGE: ${{ steps.image_id.outputs.image }}:${{ steps.image_id.outputs.image_tag }}
         run: |
-          make stack_build DOMAIN_NAME=localhost SSL_EMAIL=localhost
+          make stack_build
           docker tag ${BACKEND_IMAGE} ${{ steps.image_id.outputs.image }}:latest
 
       - name: Login to Docker Hub
@@ -42,7 +44,7 @@ jobs:
       - name: Push images to Docker Hub
         run: docker image push --all-tags ${{ steps.image_id.outputs.image }}
 
-  test:
+  staging:
     needs: build
     if: ${{ success() }}
     runs-on: ubuntu-latest
@@ -52,7 +54,7 @@ jobs:
         uses: actions/checkout@v2
 
   deployment:
-    needs: [build, test]
+    needs: [build, staging]
     if: ${{ success() }}
     runs-on: ubuntu-latest
     environment: production
@@ -93,10 +95,16 @@ jobs:
       - name: Healthcheck
         env:
           DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
-        shell: bash
+          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
         run: |
-          make deploy || ( make stack_rm ; sleep 10 ; make deploy )
-          sleep 5m
-          curl -f http://${DOMAIN_NAME}
-          curl -f https://${DOMAIN_NAME} || make service_update s=web
-          sleep 30 && curl -f https://${DOMAIN_NAME}
+          echo "Wait for services up complete 3m and check"
+          sleep 3m
+          make web_check || ( make service_logs s=web ; exit 1 )
+          echo "Check ssl, if error reload web service and try again."
+          make ssl_check || make service_update s=web
+          make ssl_check || ( make service_logs s=ssl ; exit 1 )
+
+      - name: Stack info
+        env:
+          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
+        run: make stack_info

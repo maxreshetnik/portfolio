@@ -2,7 +2,8 @@ from decimal import Decimal
 
 from django.db import models, transaction, IntegrityError
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.fields import (GenericForeignKey,
+                                                GenericRelation)
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.urls import reverse
@@ -204,8 +205,10 @@ class ShippingAddress(models.Model):
     class Meta:
         verbose_name_plural = 'shipping addresses'
         constraints = [
-            models.UniqueConstraint(fields=['user'], name='unique_default_address',
-                                    condition=models.Q(by_default=True)),
+            models.UniqueConstraint(
+                fields=['user'], name='unique_default_address',
+                condition=models.Q(by_default=True),
+            ),
         ]
 
     def __str__(self):
@@ -262,7 +265,8 @@ class Order(models.Model):
             with transaction.atomic():
                 for item in items:
                     spec = item.specification
-                    spec.available_qty = models.F('available_qty') - item.quantity
+                    new_qty = models.F('available_qty') - item.quantity
+                    spec.available_qty = new_qty
                     spec.save()
         except IntegrityError:
             return False
@@ -271,9 +275,8 @@ class Order(models.Model):
             return True
 
     def cancel_reserved_quantity(self):
-        """
-        increase the available product quantity by item quantity from the order.
-        """
+        """increase the available product quantity
+        by item quantity from the order."""
         items = self.specs.through.objects.select_related(
             'specification',
         ).filter(order_id=self.id)
@@ -299,7 +302,7 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     """
-    Creates intermediate table for ManyToMany field in Order model and Specification.
+    Creates intermediate table for m2m field in Order model and Specification.
 
     The table has a unique constraint on the specification and
     order fields to prevent duplicate specification in the same Order.

@@ -49,21 +49,18 @@ HEALTHCHECK --interval=1m --timeout=3s \
     CMD curl -f http://localhost:8000/ || exit 1
 ENTRYPOINT ["./conf/backend-entrypoint.sh", "gunicorn", "portfolio.wsgi"]
 
-FROM prod AS dev
+FROM prod AS stage
 USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir --disable-pip-version-check \
-    --prefix ${USER_DIR}/.local coverage
+    --prefix ${USER_DIR}/.local coverage flake8
 USER $PROJECT_NAME
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=portfolio.settings.dev \
-    GUNICORN_CMD_ARGS="--bind=0.0.0.0:8000 --reload --access-logfile -" \
-    PROJECT_SECRETS_FILE="${PROJECT_DIR}/conf/example-secrets.json" \
-    RACK_ENV="dev"
+    PROJECT_SECRETS_FILE="${PROJECT_DIR}/conf/example-secrets.json"
 ENTRYPOINT ["./conf/backend-entrypoint.sh"]
 CMD ["gunicorn", "portfolio.wsgi"]
 HEALTHCHECK NONE

@@ -7,16 +7,17 @@ services:
   backend:
     image: portfolio:dev
     build:
-      target: dev
+      target: stage
       args:
         PYTHON_MINOR_VERSION: "3.9"
         PYTHON_BUILD: ""
         PROJECT_NAME: "portfolio"
         PROJECT_DIR: "/workspace"
     environment:
-      - RACK_ENV=dev
-      - DJANGO_SETTINGS_MODULE=portfolio.settings.dev
-      - PGHOST=localhost
+        RACK_ENV: "dev"
+        DJANGO_SETTINGS_MODULE: "portfolio.settings.dev"
+        GUNICORN_CMD_ARGS: "--bind=0.0.0.0:8000 --reload --access-logfile -"
+        PGHOST: "localhost"
     env_file:
       - ./conf/example-db.env
     command: sleep infinity

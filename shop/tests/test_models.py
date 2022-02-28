@@ -58,7 +58,8 @@ class SmartphoneProductTests(TestCase):
         product.image.delete(save=False)
 
     def test_image_resize(self):
-        """All uploaded images are resized to the sizes specified in IMG_SIZE"""
+        """All uploaded images are resized
+        to the sizes specified in IMG_SIZE"""
         large_img_size = IMG_SIZE[0] * 2, IMG_SIZE[1] * 2
         product = self.smartphone
         product.image = get_data_for_image_field(large_img_size)
@@ -127,7 +128,8 @@ class SpecificationTests(TestCase):
         )
 
     def test_image_resize(self):
-        """All uploaded images are resized to the sizes specified in IMG_SIZE"""
+        """All uploaded images are resized
+        to the sizes specified in IMG_SIZE"""
         large_img_size = IMG_SIZE[0] * 2, IMG_SIZE[1] * 2
         spec = self.specification
         spec.image = get_data_for_image_field(large_img_size)
@@ -137,7 +139,8 @@ class SpecificationTests(TestCase):
         spec.image.delete(save=False)
 
     def test_image_resize_with_diff_width_height(self):
-        """All uploaded images are resized to the sizes specified in IMG_SIZE"""
+        """All uploaded images are resized to
+        the sizes specified in IMG_SIZE"""
         diff_img_size = IMG_SIZE[0], IMG_SIZE[1] * 2
         spec = self.specification
         spec.image = get_data_for_image_field(diff_img_size)

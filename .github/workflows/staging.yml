@@ -1,0 +1,66 @@
+# This workflow will test deploy.
+
+name: Staging
+
+on:
+  push:
+    branches: [ cicd ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.image_id.outputs.image_tag }}
+      repo_name: ${{ steps.image_id.outputs.repo_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set output image name and tags
+        id: image_id
+        shell: bash
+        run: |
+          echo "::set-output name=image::${{ secrets.DOCKER_HUB_USERNAME }}/${GITHUB_REPOSITORY#*/}"
+          echo "::set-output name=image_tag::${GITHUB_SHA::12}"
+          echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
+
+      - name: Add execute permissions for context files
+        run: chmod -R +x .
+
+  staging:
+    needs: build
+    if: ${{ success() }}
+    runs-on: ubuntu-latest
+    environment: stage
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Switch to swarm
+        shell: bash
+        run: docker swarm join-token worker || make swarm
+
+      - name: Add secrets to docker
+        shell: bash
+        run: |
+          make secrets_prune
+          make secrets name_prefix="example-"
+
+      - name: Test deploy
+        id: deploy_id
+        env:
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+          SSL_EMAIL: ${{ secrets.SSL_EMAIL }}
+          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
+          BACKEND_IMAGE: "${{ github.repository }}:latest"
+        shell: bash
+        run: make deploy
+
+      - name: Healthcheck
+        env:
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+        shell: bash
+        run: >-
+          echo "Wait for services up complete 3m and check" &&
+          sleep 5m && make web_check || make service_logs s=web

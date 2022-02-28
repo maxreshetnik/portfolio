@@ -9,5 +9,3 @@ def decimal_normalize(value):
     Normalize decimal value like cut zero ending.
     """
     return value.normalize()
-
-

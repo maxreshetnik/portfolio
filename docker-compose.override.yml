@@ -24,13 +24,8 @@ services:
     restart: always
     volumes:
       - ./conf/nginx-default.conf.template:/etc/nginx/templates/default.conf.template:ro
-    environment:
-      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
 
   ssl:
     restart: always
     volumes:
       - ./conf/ssl-entrypoint.sh:/ssl-entrypoint.sh:ro
-    environment:
-      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
-      - SSL_EMAIL

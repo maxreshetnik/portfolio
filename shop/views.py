@@ -33,7 +33,6 @@ class CreateAccountView(LoginView):
     """
     Display the sing-up form and handle the action if success.
     """
-
     form_class = CustomUserCreationForm
     template_name = 'registration/sign_up.html'
 
@@ -285,7 +284,8 @@ class CategorySpecList(MultipleObjectMixin, ShopView):
         Returns a queryset for a specification model that links all products
         through the ContentType field.
 
-        Object of the specification has the attribute product to which it belongs.
+        Object of the specification has the attribute
+        product to which it belongs.
         Queryset for different products are combined.
         """
         ordering = self.get_ordering()
@@ -441,8 +441,8 @@ class PlaceOrderView(AccountView):
                 user=request.user, status=Order.CART,
             )
         except Order.DoesNotExist:
-            empty_msg = (f'There are no items in your order, '
-                         f'add a product to your cart.')
+            empty_msg = ('There are no items in your order, '
+                         'add a product to your cart.')
             kwargs['cart_is_empty'] = empty_msg
             return self.render_to_response(self.get_context_data(**kwargs))
         order.status = Order.PROCESSING

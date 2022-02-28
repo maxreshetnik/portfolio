@@ -7,7 +7,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 data_dir_key = 'PROJECT_DATA_DIR'
 secrets_file_key = 'PROJECT_SECRETS_FILE'
-DATA_DIR = Path(os.environ[data_dir_key]) if data_dir_key in os.environ else BASE_DIR
+
+if data_dir_key in os.environ:
+    DATA_DIR = Path(os.environ[data_dir_key])
+else:
+    BASE_DIR
 
 if secrets_file_key in os.environ:
     secrets_path = Path(os.environ[secrets_file_key])
