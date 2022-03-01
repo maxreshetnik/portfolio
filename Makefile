@@ -148,6 +148,7 @@ backend_test: backend_migrations_check
 	./manage.py test --verbosity 2
 		
 backend_test_cov: backend_migrations_check
+	@docker exec $(backend_id) coverage --version
 	# Run tests
 	@docker exec $(backend_id) \
 	coverage run --source=. manage.py test --verbosity 2
@@ -155,6 +156,7 @@ backend_test_cov: backend_migrations_check
 	@docker exec $(backend_id) coverage report
 
 backend_lint:
+	@docker exec $(backend_id) flake8 --version
 	# stop the build if there are Python syntax errors or undefined names
 	@docker exec $(backend_id) \
 	flake8 . --select=E9,F63,F7,F82 --show-source
@@ -163,12 +165,12 @@ backend_lint:
 	flake8 . --exit-zero
 
 ssl_check: web_check
-	@wget --connect-timeout=300 --read-timeout=300 \
-	--spider https://$(DOMAIN_NAME)
+	@curl --cert-status -L --max-time 60 \
+	-o /dev/null --proto https $(DOMAIN_NAME)
 
 web_check:
-	@wget --connect-timeout=300 --read-timeout=300 \
-	--no-check-certificate --spider https://$(DOMAIN_NAME)
+	@curl --insecure -L --max-time 60 \
+	 -o /dev/null $(DOMAIN_NAME)
 
 # Docker Swarm targets, for prod.
 # docker-compose.yml and docker-compose.stack.yml files.
@@ -231,8 +233,7 @@ service_logs:
 	docker logs -n 20 "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')"
 
 service_exec:
-	docker exec -it \
-	"$$(docker ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
+	@docker exec "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
 
 service_update:
 	docker service update --force $(opts) $(PROJECT_NAME)_$(s)

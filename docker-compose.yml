@@ -9,6 +9,8 @@ services:
       target: prod
       cache_from: 
         - maxreshetnik/portfolio:buildcache
+      args:
+        PYTHON_MINOR_VERSION: ${PYTHON_MINOR_VERSION:-3.9}
     image: ${BACKEND_IMAGE:-maxreshetnik/portfolio:latest}
     volumes:
       - media:/home/portfolio/media
@@ -31,7 +33,7 @@ services:
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
       - APP_SERVER_LOCATION=backend:8000
-      - SSL_DIR=/etc/nginx/ssl
+      - SSL_DIR=/etc/letsencrypt
     ports:
       - "80:80"
       - "443:443"
@@ -39,7 +41,7 @@ services:
     volumes:
       - static:/usr/share/nginx/static:ro
       - media:/usr/share/nginx/media:ro
-      - ssl_files:/etc/nginx/ssl
+      - ssl_files:/etc/letsencrypt:ro
     depends_on:
       - backend
       - ssl

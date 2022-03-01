@@ -105,12 +105,12 @@ server {
     add_header  Strict-Transport-Security "max-age=31536000; includeSubdomains;";
 
     # SSL Certificate files
-    ssl_certificate      ${SSL_DIR}/live/${DOMAIN_NAME}/fullchain.pem;
-    ssl_certificate_key  ${SSL_DIR}/live/${DOMAIN_NAME}/privkey.pem;
-    ssl_dhparam          ${SSL_DIR}/ssl-dhparams.pem;
+    ssl_certificate         ${SSL_DIR}/live/${DOMAIN_NAME}/fullchain.pem;
+    ssl_certificate_key     ${SSL_DIR}/live/${DOMAIN_NAME}/privkey.pem;
+    ssl_dhparam             ${SSL_DIR}/ssl-dhparams.pem;
 
     # SSL settings
-    include              ${SSL_DIR}/options-ssl-nginx.conf;
+    include                 ${SSL_DIR}/options-ssl-nginx.conf;
 
     root  /usr/share/nginx;
 

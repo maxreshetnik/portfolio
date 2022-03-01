@@ -8,9 +8,10 @@ FROM python:${PYTHON_MINOR_VERSION}${PYTHON_BUILD} AS builder
 ARG PYTHON_MINOR_VERSION
 ARG USER_DIR
 ARG PROJECT_DIR
-RUN apt-get update \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install -y --no-install-recommends \
-    python${PYTHON_MINOR_VERSION}-dev libpq-dev gcc \
+    python${PYTHON_MINOR_VERSION}-dev libpq-dev \
+    build-essential gcc \
     && rm -rf /var/lib/apt/lists/* 
 WORKDIR "${USER_DIR}/.local/"
 COPY requirements.txt .
@@ -27,7 +28,7 @@ ARG PROJECT_DIR
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 EXPOSE 8000
-RUN apt-get update \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install -y --no-install-recommends \
     python${PYTHON_MINOR_VERSION}-dev libpq-dev curl \
     && rm -rf /var/lib/apt/lists/* \
@@ -51,7 +52,7 @@ ENTRYPOINT ["./conf/backend-entrypoint.sh", "gunicorn", "portfolio.wsgi"]
 
 FROM prod AS stage
 USER root
-RUN apt-get update \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && apt-get install -y --no-install-recommends \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/* \

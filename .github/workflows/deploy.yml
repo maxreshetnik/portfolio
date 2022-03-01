@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'master'
+      - 'dev'
     tags:        
       - '*'
 jobs:
@@ -53,6 +54,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Switch to swarm
+        shell: bash
+        run: docker swarm join-token worker || make swarm
+
+      - name: Add secrets to docker
+        shell: bash
+        run: |
+          make secrets_prune
+          make secrets name_prefix="example-"
+
+      - name: Pull images and deploy to swarm
+        env:
+          DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
+          SSL_EMAIL: ${{ secrets.SSL_EMAIL }}
+          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
+          BACKEND_IMAGE: "${{ github.repository }}:latest"
+        shell: bash
+        run: make deploy
+
+      - name: Check services up
+        env:
+          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
+        shell: bash
+        run: |
+          echo "Wait 3 minutes for services up complete"
+          sleep 3m
+          make service_exec s=web c="nginx -t"
+
   deployment:
     needs: [build, staging]
     if: ${{ success() }}
@@ -92,19 +121,22 @@ jobs:
         shell: bash
         run: make deploy || ( make stack_rm ; sleep 10 ; make deploy )
 
+      - name: Stack info
+        env:
+          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
+        shell: bash
+        run: |
+          echo "Wait 3 minutes for services up complete"
+          sleep 3m
+          make stack_info
+
       - name: Healthcheck
         env:
           DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
           PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
         run: |
-          echo "Wait for services up complete 3m and check"
-          sleep 3m
           make web_check || ( make service_logs s=web ; exit 1 )
           echo "Check ssl, if error reload web service and try again."
           make ssl_check || make service_update s=web
+          sleep 3m
           make ssl_check || ( make service_logs s=ssl ; exit 1 )
-
-      - name: Stack info
-        env:
-          PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
-        run: make stack_info

@@ -11,6 +11,16 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        python-minor-version: ["3.8", "3.10"]
+        experimental: [true]
+        include:
+          - python-minor-version: "3.9"
+            experimental: false
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -35,12 +45,14 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and tag images
+      - name: Build image with python ${{ matrix.python-minor-version }}
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: false
+          build-args: |
+            PYTHON_MINOR_VERSION=${{ matrix.python-minor-version }}
           target: stage
+          push: false
           load: true
           tags: ${{ steps.image_id.outputs.image }}:${{ steps.image_id.outputs.image_tag }}
           cache-from: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache

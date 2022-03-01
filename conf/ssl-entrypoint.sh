@@ -15,7 +15,6 @@ SSL_KEY_FILE="${CRT_DIR}/privkey.pem"
 
 set +u
 
-if [ ! -f "${SSL_OPTS_FILE}" ]; then
 cat > "${SSL_OPTS_FILE}" <<EOF 
     ssl_protocols                  TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers      off;
@@ -24,12 +23,11 @@ cat > "${SSL_OPTS_FILE}" <<EOF
     ssl_session_timeout            1440m;
     ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384"; 
 EOF
-fi
 
 if [ ! -f "${SSL_KEY_FILE}" ] || [ ! -f "${SSL_CRT_FILE}" ]; then
     mkdir -p "${CRT_DIR}"
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -subj "/C=XX/CN=${DOMAIN_NAME}" \
+    -outform PEM -keyform PEM -subj "/C=XX/CN=${DOMAIN_NAME}" \
     -keyout "${SSL_KEY_FILE}" -out "${SSL_CRT_FILE}" \
     || echo "Openssl fails to create key or cert: Exited $?"
 fi
@@ -60,6 +58,13 @@ if [[ "$1" = 'certbot' && "$DOMAIN_NAME" != 'localhost' ]]; then
         echo "Certbot can't get a certificate, use --dry-run option for testing." ;
         echo "wait for 1h before exit" ; sleep 1h ; exit 1
     )
+
+    echo -e "
+    # Enable OSCP stapling
+    ssl_stapling            on;
+    ssl_stapling_verify     on;
+    ssl_trusted_certificate ${CRT_DIR}/chain.pem;
+    " >> ${SSL_OPTS_FILE}
 
     echo "Run a certbot renew check every 12 hours."
     while true
