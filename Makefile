@@ -170,7 +170,7 @@ ssl_check: web_check
 
 web_check:
 	@curl --insecure -L --max-time 60 \
-	 -o /dev/null $(DOMAIN_NAME)
+	-o /dev/null $(DOMAIN_NAME)
 
 # Docker Swarm targets, for prod.
 # docker-compose.yml and docker-compose.stack.yml files.

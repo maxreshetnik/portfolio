@@ -127,8 +127,7 @@ jobs:
         shell: bash
         run: |
           echo "Wait 3 minutes for services up complete"
-          sleep 3m
-          make stack_info
+          sleep 3m && make stack_info
 
       - name: Healthcheck
         env:
@@ -136,7 +135,6 @@ jobs:
           PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
         run: |
           make web_check || ( make service_logs s=web ; exit 1 )
-          echo "Check ssl, if error reload web service and try again."
+          echo "Check ssl, if error reload web service and try again after 5 min."
           make ssl_check || make service_update s=web
-          sleep 3m
-          make ssl_check || ( make service_logs s=ssl ; exit 1 )
+          sleep 5m && make ssl_check || ( make service_logs s=ssl ; exit 1 )
