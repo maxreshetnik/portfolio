@@ -1,10 +1,14 @@
 # This workflow will build docker images, run tests and lint python code.
+# Publish docker image when push tag.
 
 name: Testing
 
 on:
   push:
-    branches-ignore: [ master ]
+    branches-ignore: 
+      - 'master'
+    tags:
+      - '*'
   pull_request:
 
 jobs:
@@ -13,14 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.experimental }}
     strategy:
-      max-parallel: 2
+      max-parallel: 3
       fail-fast: false
       matrix:
-        python-minor-version: ["3.8", "3.10"]
-        experimental: [true]
+        python-minor-version: ["3.8", "3.9"]
+        experimental: [false]
         include:
-          - python-minor-version: "3.9"
-            experimental: false
+          - python-minor-version: "3.10"
+            experimental: true
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -54,9 +58,9 @@ jobs:
           target: stage
           push: false
           load: true
+          builder: ${{ steps.buildx.outputs.name }}
           tags: ${{ steps.image_id.outputs.image }}:${{ steps.image_id.outputs.image_tag }}
           cache-from: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache
-          cache-to: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache,mode=max
 
       - name: Up backend and deps
         env:
@@ -70,3 +74,43 @@ jobs:
 
       - name: Test
         run: make backend_test_cov
+
+  publish:
+    needs: test
+    if: ${{ success() && github.ref_type == 'tag' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set output image name and tags
+        id: image_id
+        shell: bash
+        run: |
+          echo "::set-output name=image::${{ secrets.DOCKER_HUB_USERNAME }}/${GITHUB_REPOSITORY#*/}"
+          echo "::set-output name=image_tag::${{ github.ref_name }}"
+
+      - name: Add execute permissions for context files
+        run: chmod -R +x .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build, tag and push to Docker Hub
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          target: prod
+          push: true
+          builder: ${{ steps.buildx.outputs.name }}
+          tags: |
+            ${{ steps.image_id.outputs.image }}:latest
+            ${{ steps.image_id.outputs.image }}:${{ steps.image_id.outputs.image_tag }}
+          cache-from: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache
+          cache-to: type=registry,ref=${{ steps.image_id.outputs.image }}:buildcache,mode=max
