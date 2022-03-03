@@ -22,9 +22,13 @@ jobs:
         id: image_id
         shell: bash
         run: |
-          echo "::set-output name=image::${{ secrets.DOCKER_HUB_USERNAME }}/${GITHUB_REPOSITORY#*/}"
-          echo "::set-output name=image_tag::${GITHUB_SHA::12}"
           echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
+          echo "::set-output name=image::${{ secrets.DOCKER_HUB_USERNAME }}/${GITHUB_REPOSITORY#*/}"
+          if [[ ${{ github.ref_type }} = 'tag' ]]; then
+            echo "::set-output name=image_tag::${{ github.ref_name }}"
+          else
+            echo "::set-output name=image_tag::${GITHUB_SHA::12}"
+          fi
 
       - name: Add execute permissions for context files
         run: chmod -R +x .
@@ -69,7 +73,7 @@ jobs:
           DOMAIN_NAME: ${{ secrets.DOMAIN_NAME }}
           SSL_EMAIL: ${{ secrets.SSL_EMAIL }}
           PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
-          BACKEND_IMAGE: "${{ github.repository }}:latest"
+          BACKEND_IMAGE: "${{ github.repository }}:${{ needs.build.outputs.image_tag }}"
         shell: bash
         run: make deploy
 
@@ -79,8 +83,7 @@ jobs:
         shell: bash
         run: |
           echo "Wait 3 minutes for services up complete"
-          sleep 3m
-          make service_exec s=web c="nginx -t"
+          sleep 3m && make service_exec s=web c="nginx -t"
 
   deployment:
     needs: [build, staging]
@@ -118,13 +121,11 @@ jobs:
           SSL_EMAIL: ${{ secrets.SSL_EMAIL }}
           PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
           BACKEND_IMAGE: "${{ github.repository }}:${{ needs.build.outputs.image_tag }}"
-        shell: bash
         run: make deploy || ( make stack_rm ; sleep 10 ; make deploy )
 
       - name: Stack info
         env:
           PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
-        shell: bash
         run: |
           echo "Wait 3 minutes for services up complete"
           sleep 3m && make stack_info
@@ -135,6 +136,6 @@ jobs:
           PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
         run: |
           make web_check || ( make service_logs s=web ; exit 1 )
-          echo "Check ssl, if error reload web service and try again after 5 min."
-          make ssl_check || make service_update s=web
-          sleep 5m && make ssl_check || ( make service_logs s=ssl ; exit 1 )
+          echo "Check ssl, reload nginx conf and try again after 1 min if check error."
+          make ssl_check || make service_exec s=web c="nginx -s reload"
+          sleep 1m && make ssl_check || ( make service_logs s=ssl ; exit 1 )

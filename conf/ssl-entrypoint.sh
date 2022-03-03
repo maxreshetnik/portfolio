@@ -63,6 +63,7 @@ if [[ "$1" = 'certbot' && "$DOMAIN_NAME" != 'localhost' ]]; then
     # Enable OSCP stapling
     ssl_stapling            on;
     ssl_stapling_verify     on;
+    resolver 8.8.8.8;
     ssl_trusted_certificate ${CRT_DIR}/chain.pem;
     " >> ${SSL_OPTS_FILE}
 
