@@ -5,6 +5,7 @@
 **/venv
 **/.git
 **/.gitignore
+**/.gitattributes
 **/.dockerignore
 **/docker-compose*
 **/.devcontainer

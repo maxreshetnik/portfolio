@@ -15,7 +15,7 @@ services:
     environment:
         RACK_ENV: "dev"
         DJANGO_SETTINGS_MODULE: "portfolio.settings.dev"
-        GUNICORN_CMD_ARGS: "--bind=0.0.0.0:8000 --reload --access-logfile -"
+        GUNICORN_CMD_ARGS: "--bind=0.0.0.0:8001 --reload --access-logfile -"
         PGHOST: "localhost"
     env_file:
       - ./conf/example-db.env
@@ -47,9 +47,16 @@ services:
 
   web:
     container_name: portfolio_web_dev
+    environment:
+      APP_SERVER_LOCATION: db:8001
     restart: unless-stopped
     healthcheck:
       disable: true
+    volumes:
+      - type: bind
+        source: ./media
+        target: /usr/share/nginx/media
+        read_only: true
 
   ssl:
     container_name: portfolio_ssl_dev
@@ -58,4 +65,3 @@ services:
 networks:
   default:
     name: portfolio_net_dev
-    

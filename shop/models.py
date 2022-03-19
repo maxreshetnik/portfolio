@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import (GenericForeignKey,
                                                 GenericRelation)
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.search import SearchVector
+from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.urls import reverse
 
@@ -48,6 +50,10 @@ class Category(models.Model):
     class Meta:
         ordering = ['name']
         verbose_name_plural = 'categories'
+        indexes = (
+            GinIndex(SearchVector('name', config='english'),
+                     name='%(app_label)s_%(class)s_vector_idx'),
+        )
 
     def __str__(self):
         return self.name
@@ -102,6 +108,10 @@ class Product(models.Model):
     class Meta:
         abstract = True
         ordering = ['-date_added']
+        indexes = (
+            GinIndex(SearchVector('name', 'marking', config='english'),
+                     name='%(class)s_vector_idx'),
+        )
 
     def __str__(self):
         return f'{self.category} {self.name} {self.marking}'
@@ -173,6 +183,10 @@ class Specification(models.Model):
             models.CheckConstraint(
                 check=models.Q(available_qty__gte=0), name='qty_gte_0'),
         ]
+        indexes = (
+            GinIndex(SearchVector('tag', config='english'),
+                     name='%(app_label)s_%(class)s_vector_idx'),
+        )
 
     def __str__(self):
         return f'{self.content_object}, {self.tag}'

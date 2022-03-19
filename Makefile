@@ -59,6 +59,10 @@ endif
 test:
 	./manage.py test --verbosity 2
 
+test_cov:
+	coverage run --source=. manage.py test --verbosity 2
+	coverage report
+
 migrate: makemigrations
 	./manage.py migrate
 
