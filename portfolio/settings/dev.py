@@ -14,12 +14,6 @@ CSRF_COOKIE_SECURE = False
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-LOGGING["loggers"]["django.db.backends"] = {
-    'level': 'DEBUG',
-    'handlers': ['console'],
-    'propagate': False,
-}
-
 SESSION_COOKIE_SECURE = False
 
 STATIC_ROOT = str(DATA_DIR.joinpath('static_dev'))

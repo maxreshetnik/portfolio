@@ -117,9 +117,22 @@ class Product(models.Model):
         return f'{self.category} {self.name} {self.marking}'
 
     def save(self, *args, **kwargs):
-        """Extends save method, resizes the loaded image"""
+        """
+        Extends save method, resizes an image, updates specs category.
+
+        When a category field is updated, it changes a category field
+        in the specs related model.
+        """
         services.handle_image_size(getattr(self, 'image'))
+        is_category_update = False
+        if self.id is not None:
+            model = getattr(self, '_meta').model
+            is_category_update = not model.objects.filter(
+                pk=self.pk, category_id=self.category_id,
+            ).exists()
         super().save(*args, **kwargs)
+        if is_category_update:
+            self.specs.update(category_id=self.category_id)
 
 
 class Specification(models.Model):
@@ -172,6 +185,9 @@ class Specification(models.Model):
         max_length=100, blank=True, verbose_name='additional information',
     )
     date_added = models.DateField(auto_now_add=True)
+    category = models.ForeignKey(
+        'Category', on_delete=models.PROTECT, related_name='specs',
+    )
     content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE,
     )
@@ -192,13 +208,16 @@ class Specification(models.Model):
         return f'{self.content_object}, {self.tag}'
 
     def save(self, *args, **kwargs):
-        """Extends save method, resizes an image and calculates
-        a value for the discount_price field.
+        """
+        Extends save method, resizes an image, calculates a discount price
+        and adds category from a product model.
         """
         services.handle_image_size(getattr(self, 'image'))
         self.discount_price = self.price - (
                 self.price * self.discount / 100
         ).quantize(self.price)
+        if self.id is None:
+            self.category_id = self.content_object.category_id
         super().save(*args, **kwargs)
 
 
@@ -301,7 +320,8 @@ class Order(models.Model):
         self.reserved = False
 
     def save(self, *args, **kwargs):
-        """Extends the method with a condition for canceled reserved orders."""
+        """Extends the method with a condition for
+        canceled reserved orders."""
         if (self.status == self.CANCELED and
                 self.reserved and self.id is not None):
             self.cancel_reserved_quantity()

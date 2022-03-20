@@ -205,7 +205,7 @@ class SearchView(MultipleObjectMixin, ShopView):
         qs = model.objects.annotate(search=vector).filter(search=self.query)
         return qs
 
-    def get_specs_search_rank(self, ct_obj: ContentType, cat_names=None):
+    def get_specs_search_rank(self, ct_obj: ContentType, cat_list=None):
         """Rank and filter specifications by search text"""
         query = self.query
         vector = self.get_specs_vector()
@@ -215,10 +215,10 @@ class SearchView(MultipleObjectMixin, ShopView):
 
         qs = get_specs(ct_id=ct_obj.id).annotate(search=vector)
 
-        if cat_names is None:
+        if cat_list is None:
             qs = qs.filter(Q(Exists(product)) | Q(search=query))
         else:
-            qs = qs.filter(category_name__in=cat_names)
+            qs = qs.filter(category_name__in=cat_list)
 
         qs = qs.annotate(
             rank_prod=Subquery(product_rank.order_by().values('rank')), 
@@ -232,12 +232,12 @@ class SearchView(MultipleObjectMixin, ShopView):
     def search_in_category(self, category):
         """Search the query text in a specific category."""
         ct_obj = category.content_type
-        cat_names = [category.name] + [c.name for c in category.subcategories]
-        qs = self.get_specs_search_rank(ct_obj, cat_names=cat_names)
+        cat_list = [category.name] + [c.name for c in category.subcategories]
+        qs = self.get_specs_search_rank(ct_obj, cat_list=cat_list)
         for sub in category.subcategories:
             if sub.content_type_id != category.content_type_id:
                 qs_other = self.get_specs_search_rank(
-                    sub.content_type, cat_names=cat_names,
+                    sub.content_type, cat_list=cat_list,
                 )
                 qs = qs.union(qs_other)
         return qs
