@@ -5,28 +5,28 @@
 
 {% block title %}
 <title>
-    {{ spec.product.category.name }} {{ spec.product.name }}
+    {{ spec.category.name }} {{ spec.product.name }}
     {{ spec.product.marking }} {{ spec.tag }} - Shop
 </title>
 {% endblock title %}
 
 <!-- Section -->
 {% block breadcrumbs %}
-{% url 'shop:category' spec.product.category.category.name|lower as category_url %}
+{% url 'shop:category' spec.category.category.name|lower as category_url %}
 <ol class="breadcrumb ms-lg-4 ps-lg-4">
     <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
     <li class="breadcrumb-item">
         <a href="{{ category_url }}" class="text-decoration-none">
-            {{ spec.product.category.category.name }}
+            {{ spec.category.category.name }}
         </a>
     </li>
     <li class="breadcrumb-item">
-        <a href="{{ category_url }}{{ spec.product.category.name|lower }}/"
-           class="text-decoration-none">{{ spec.product.category.name }}
+        <a href="{{ category_url }}{{ spec.category.name|lower }}/"
+           class="text-decoration-none">{{ spec.category.name }}
         </a>
     </li>
     <li class="breadcrumb-item active" aria-current="page">
-        {{ spec.product.category.name }} {{ spec.product.name }}
+        {{ spec.category.name }} {{ spec.product.name }}
         {{ spec.product.marking }} {{ spec.tag }}
     </li>
 </ol>
@@ -42,7 +42,7 @@
     <div class="card border-0">
         <div class="card-body pt-0">
             <h5 class="card-title mb-3">
-                {{ spec.product.category.name }} {{ spec.product.name }}
+                {{ spec.category.name }} {{ spec.product.name }}
                 {{ spec.product.marking }} {{ spec.tag }}
             </h5>
             {% if spec.rating is None %}

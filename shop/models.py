@@ -124,14 +124,14 @@ class Product(models.Model):
         in the specs related model.
         """
         services.handle_image_size(getattr(self, 'image'))
-        is_category_update = False
+        is_category_updated = False
         if self.id is not None:
             model = getattr(self, '_meta').model
-            is_category_update = not model.objects.filter(
+            is_category_updated = not model.objects.filter(
                 pk=self.pk, category_id=self.category_id,
             ).exists()
         super().save(*args, **kwargs)
-        if is_category_update:
+        if is_category_updated:
             self.specs.update(category_id=self.category_id)
 
 
@@ -205,7 +205,16 @@ class Specification(models.Model):
         )
 
     def __str__(self):
-        return f'{self.content_object}, {self.tag}'
+        product = self.content_object
+        return f'{self.category} {product.name} {product.marking}, {self.tag}'
+
+    def get_absolute_url(self):
+        kwargs = {
+            'category': str(self.category.category.name).lower(),
+            'subcategory': str(self.category.name).lower(),
+            'pk': self.pk
+        }
+        return reverse('shop:spec_detail', kwargs=kwargs)
 
     def save(self, *args, **kwargs):
         """
@@ -216,7 +225,7 @@ class Specification(models.Model):
         self.discount_price = self.price - (
                 self.price * self.discount / 100
         ).quantize(self.price)
-        if self.id is None:
+        if self.category_id is None:
             self.category_id = self.content_object.category_id
         super().save(*args, **kwargs)
 

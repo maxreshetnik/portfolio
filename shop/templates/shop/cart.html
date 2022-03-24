@@ -77,9 +77,9 @@
             <div class="col p-2">
                 <!-- Product name-->
                 <h6 class="fw-bold">
-                    <a href="{% url 'shop:spec_detail' item.spec.product.category.category.name|lower item.spec.product.category.name|lower item.spec.id %}"
+                    <a href="{{ item.spec.get_absolute_url }}"
                        class="text-dark text-decoration-none" >
-                        {{ item.spec.product.category.name }} {{ item.spec.product.name }}
+                        {{ item.spec.category.name }} {{ item.spec.product.name }}
                         {{ item.spec.product.marking }} {{ item.spec.tag }}
                     </a>
                 </h6>

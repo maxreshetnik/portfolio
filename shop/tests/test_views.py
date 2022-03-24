@@ -167,10 +167,11 @@ class SpecificationDetailTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.username = 'test'
-        cls.passwd = 'fdf24F42uih'
+        username, passwd = 'test', 'fdf24F42uih'
+        cls.username = username
+        cls.passwd = passwd
         cls.user = User.objects.create_user(
-            username=cls.username, password=cls.passwd,
+            username=username, password=passwd,
         )
 
     def setUp(self):
@@ -181,9 +182,11 @@ class SpecificationDetailTests(TestCase):
         Method get_template_names() adds a product model name to
         a template name and returns a list of template names.
         """
-        spec = Specification.objects.first()
+        spec = Specification.objects.select_related(
+            'category__category',
+        ).first()
         self.assertIsNotNone(spec, msg='No specification')
-        category = spec.content_object.category
+        category = spec.category
         kwargs = {
             'category': str(category.category.name).lower(),
             'subcategory': str(category.name).lower(),
@@ -219,7 +222,7 @@ class SearchViewTests(TestCase):
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         for spec in response.context[views.SearchView.context_object_name]:
-            self.assertIn(spec.category_name, category_names)
+            self.assertIn(spec.category.name, category_names)
 
     def test_category_search_result(self):
         """
@@ -228,15 +231,15 @@ class SearchViewTests(TestCase):
         """
         spec = Specification.objects.filter(
             available_qty__gt=0,
-        ).last()
+        ).select_related('category').last()
         self.assertIsNotNone(spec, msg='No spec in test db')
-        category = spec.content_object.category
+        category = spec.category
         response = self.client.get(
             reverse('shop:search'), {'q': category.name},
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         for spec in response.context[views.SearchView.context_object_name]:
-            self.assertEqual(spec.category_name, category.name)
+            self.assertEqual(spec.category.name, category.name)
 
     def test_category_and_product_search_result(self):
         """

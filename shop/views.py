@@ -50,12 +50,6 @@ def get_rate_subquery():
     return Subquery(rates.values('point__avg'))
 
 
-def get_product_subquery(ct_id):
-    model = ContentType.objects.get_for_id(ct_id).model_class()
-    products = model.objects.filter(id=OuterRef('object_id'))
-    return Subquery(products.order_by().values('category__name'))
-
-
 def get_specs(queryset=None, ct_id=None):
     """
     Returns an annotated and product prefetched specification queryset,
@@ -66,14 +60,12 @@ def get_specs(queryset=None, ct_id=None):
     )
     rate_subquery = get_rate_subquery()
     if ct_id is not None:
-        product_subquery = get_product_subquery(ct_id)
-        queryset = queryset.filter(
-            content_type_id=ct_id,
-        ).annotate(category_name=product_subquery)
-
-    queryset = queryset.annotate(rating=rate_subquery)
+        queryset = queryset.filter(content_type_id=ct_id)
     prefetch = Prefetch('content_object', to_attr='product')
-    return queryset.prefetch_related(prefetch)
+    queryset = queryset.annotate(rating=rate_subquery).select_related(
+        'category__category',
+    ).prefetch_related(prefetch)
+    return queryset
 
 
 class ShopView(TemplateView):
@@ -130,7 +122,6 @@ class ShopView(TemplateView):
         context['catalog'] = self.categories.filter(
             category__isnull=True,
         )
-        # scale for star rating filled and half filled.
         context['rating_scale'] = [
             (n - 0.2, n - 0.75) for n in Rate.PointValue.values
         ]
@@ -165,7 +156,7 @@ class HomePageView(ShopView):
 
 class SearchView(MultipleObjectMixin, ShopView):
     """
-    Display a paginated list of products for a search query.
+    Display the paginated list of products for a search query.
 
     Uses full-text search, first searches for matches in category names
     to narrow down the search, then for all product models.
@@ -212,14 +203,11 @@ class SearchView(MultipleObjectMixin, ShopView):
         qs_prod = self.get_products_search(ct_obj)
         product = qs_prod.filter(id=OuterRef('object_id'))
         product_rank = product.annotate(rank=SearchRank('search', query))
-
         qs = get_specs(ct_id=ct_obj.id).annotate(search=vector)
-
         if cat_list is None:
             qs = qs.filter(Q(Exists(product)) | Q(search=query))
         else:
-            qs = qs.filter(category_name__in=cat_list)
-
+            qs = qs.filter(category_id__in=cat_list)
         qs = qs.annotate(
             rank_prod=Subquery(product_rank.order_by().values('rank')), 
             rank_spec=SearchRank('search', query),
@@ -232,7 +220,7 @@ class SearchView(MultipleObjectMixin, ShopView):
     def search_in_category(self, category):
         """Search the query text in a specific category."""
         ct_obj = category.content_type
-        cat_list = [category.name] + [c.name for c in category.subcategories]
+        cat_list = [category.id] + [c.id for c in category.subcategories]
         qs = self.get_specs_search_rank(ct_obj, cat_list=cat_list)
         for sub in category.subcategories:
             if sub.content_type_id != category.content_type_id:
@@ -303,7 +291,7 @@ class CategorySpecList(MultipleObjectMixin, ShopView):
     context_object_name = 'spec_list'
     queryset = None
     object_list = None
-    ordering = ('category_name', 'price')
+    ordering = ('category__name', 'price')
     paginate_by = 2
 
     def get_category(self):
@@ -329,13 +317,15 @@ class CategorySpecList(MultipleObjectMixin, ShopView):
         category = self.get_category()
         ct_id = category.content_type_id
         queryset = get_specs(self.queryset, ct_id)
+        queryset = queryset.select_related(None).select_related('category')
         if not category.subcategories:
             self.kwargs['category'] = category.category
-            queryset = queryset.filter(category_name=category.name)
+            queryset = queryset.filter(category_id=category.id)
             return queryset.order_by(*ordering)
         for sub in category.subcategories:
             if sub.content_type_id != ct_id:
                 qs = get_specs(self.queryset, sub.content_type_id)
+                qs = qs.select_related(None).select_related('category')
                 queryset = queryset.union(qs)
         self.kwargs['category'] = category
         return queryset.order_by(*ordering)
@@ -411,6 +401,12 @@ class CartView(LoginRequiredMixin, ShopView):
     template_name = 'shop/cart.html'
 
     def get_context_data(self, **kwargs):
+        """
+        Extends the context by adding the user's cart with products.
+
+        Check if items have changed in price or available qty
+        and calculate the cost of the order.
+        """
         items = self.get_cart_items().annotate(
             total_price=F('price') * F('quantity'),
         ).select_related('order').order_by('-id')
@@ -426,15 +422,13 @@ class CartView(LoginRequiredMixin, ShopView):
         )
         spec_queryset = Specification.objects.annotate(
             best_price=price_case,
-        ).prefetch_related(
+        ).select_related('category__category').prefetch_related(
             Prefetch('content_object', to_attr='product'),
         )
         spec_prefetch = Prefetch(
             'specification', queryset=spec_queryset, to_attr='spec',
         )
         prefetch_related_objects(kwargs['cart'], spec_prefetch)
-        # check if items have changed in price or available qty
-        # and calculate the cost of the order.
         msg = 'Some items have changed in price or available qty.'
         for item in kwargs['cart']:
             if item.quantity > item.spec.available_qty:
@@ -546,7 +540,9 @@ class OrderDetailView(SingleObjectMixin, AccountView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        spec_queryset = Specification.objects.prefetch_related(
+        spec_queryset = Specification.objects.select_related(
+            'category__category',
+        ).prefetch_related(
             Prefetch('content_object', to_attr='product'),
         )
         spec_prefetch = Prefetch(

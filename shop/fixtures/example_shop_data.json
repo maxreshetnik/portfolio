@@ -134,6 +134,7 @@
     "available_qty": "100.000",
     "addition": "code 123.541",
     "date_added": "2021-06-28",
+    "category": 16,
     "content_type": [
       "shop",
       "tvproduct"
@@ -156,6 +157,7 @@
     "available_qty": "200.000",
     "addition": "code 145.545",
     "date_added": "2021-06-28",
+    "category": 17,
     "content_type": [
       "shop",
       "smartphoneproduct"
@@ -178,6 +180,7 @@
     "available_qty": "70.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": 20,
     "content_type": [
       "shop",
       "foodproduct"
@@ -200,6 +203,7 @@
     "available_qty": "400.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": 18,
     "content_type": [
       "shop",
       "foodproduct"
@@ -222,6 +226,7 @@
     "available_qty": "100.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": 19,
     "content_type": [
       "shop",
       "foodproduct"
@@ -244,6 +249,7 @@
     "available_qty": "81.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": 21,
     "content_type": [
       "shop",
       "clothingproduct"
@@ -266,6 +272,7 @@
     "available_qty": "40.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": 21,
     "content_type": [
       "shop",
       "clothingproduct"
@@ -288,6 +295,7 @@
     "available_qty": "50.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": 22,
     "content_type": [
       "shop",
       "clothingproduct"
@@ -310,6 +318,7 @@
     "available_qty": "0.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": 22,
     "content_type": [
       "shop",
       "clothingproduct"
@@ -332,6 +341,7 @@
     "available_qty": "90.000",
     "addition": "code 145.546",
     "date_added": "2021-07-13",
+    "category": 17,
     "content_type": [
       "shop",
       "smartphoneproduct"
