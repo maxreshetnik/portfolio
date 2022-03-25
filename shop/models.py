@@ -25,6 +25,11 @@ class Account(USER):
         return f"{self.username}'s account"
 
 
+class CategoryManager(models.Manager):
+    def get_by_natural_key(self, name):
+        return self.get(name=name)
+
+
 class Category(models.Model):
     """
     Creates model for product and parent categories.
@@ -47,6 +52,8 @@ class Category(models.Model):
                           'model__endswith': 'product'},
     )
 
+    objects = CategoryManager()
+
     class Meta:
         ordering = ['name']
         verbose_name_plural = 'categories'
@@ -57,6 +64,9 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+    def natural_key(self):
+        return self.name,
 
     def get_absolute_url(self):
         if self.category is not None:
