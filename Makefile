@@ -56,11 +56,14 @@ ifneq ($(RACK_ENV), dev)
 	false
 endif
 
-test:
-	./manage.py test --verbosity 2
+test: migrations_check
+	./manage.py test --verbosity 2 \
+	--settings $(PROJECT_NAME).settings.$(RACK_ENV)
 
-test_cov:
-	coverage run --source=. manage.py test --verbosity 2
+test_cov: migrations_check
+	coverage run --source=. \
+	manage.py test --verbosity 2 \
+	--settings $(PROJECT_NAME).settings.$(RACK_ENV)
 	coverage report
 
 migrate: makemigrations
@@ -68,6 +71,9 @@ migrate: makemigrations
 
 makemigrations:
 	./manage.py makemigrations
+
+migrations_check:
+	./manage.py makemigrations --check --dry-run
 
 loaddata:
 ifeq ($(RACK_ENV), dev)

@@ -173,11 +173,11 @@ class SearchView(MultipleObjectMixin, ShopView):
     @staticmethod
     def get_category_vector() -> SearchVector:
         return SearchVector('name', config='english')
-        
+
     @staticmethod
     def get_specs_vector() -> SearchVector:
         return SearchVector('tag', config='english')
-        
+
     @staticmethod
     def get_products_vector() -> SearchVector:
         return SearchVector('name', 'marking', config='english')
@@ -209,7 +209,7 @@ class SearchView(MultipleObjectMixin, ShopView):
         else:
             qs = qs.filter(category_id__in=cat_list)
         qs = qs.annotate(
-            rank_prod=Subquery(product_rank.order_by().values('rank')), 
+            rank_prod=Subquery(product_rank.order_by().values('rank')),
             rank_spec=SearchRank('search', query),
         ).annotate(rank=Case(
             When(rank_prod__isnull=True, then='rank_spec'),
