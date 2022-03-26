@@ -146,7 +146,7 @@ backend_loaddata:
 	docker cp $(src) $(backend_id):/home/$(PROJECT_NAME)/data.json
 	@docker exec -it $(backend_id) \
 	./manage.py loaddata /home/$(PROJECT_NAME)/data.json ; \
-	@docker exec -it $(backend_id) \
+	docker exec -it $(backend_id) \
 	rm /home/$(PROJECT_NAME)/data.json
 
 backend_loadmedia:
