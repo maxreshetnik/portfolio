@@ -7,7 +7,7 @@
     <div class="col mb-5">
         <div class="card h-100">
             <a class="card-link link-dark text-decoration-none"
-               href="{% block spec_link %}{{ category_url }}{{ spec.category_name|lower }}/{{ spec.id }}/{% endblock %}">
+               href="{% block spec_link %}{{ category_url }}{{ spec.category.name|lower }}/{{ spec.id }}/{% endblock %}">
                 <!-- Product image-->
                 <img class="card-img-top"
                      src="{% if spec.image %}{{ spec.image.url }}{% else %}{{ spec.product.image.url }}{% endif %}"
@@ -17,7 +17,7 @@
                     <!-- Product name-->
                     <h6 class="text-center small fw-bold">
                     {% block product_name %}
-                        {{ spec.category_name }} {{ spec.product.name }}
+                        {{ spec.category.name }} {{ spec.product.name }}
                         {{ spec.product.marking }} {{ spec.tag }}<br/>
                         {% if spec.pre_packing != 1 %}
                         <span class="text-center">pre-packing

@@ -1,4 +1,4 @@
-{% extends "shop/specs_by_category.html" %}
+{% extends "shop/base.html" %}
 
 {% block title %}
 <title>Product search - Shop</title>
@@ -10,3 +10,13 @@
     <li class="breadcrumb-item active" aria-current="page">Search</li>
 </ol>
 {% endblock %}
+
+{% block content %}
+    {% include "shop/includes/section_home.html" %}
+{% endblock content %}
+
+{% block pagination %}
+{% if is_paginated %}
+    {% include "shop/includes/pagination.html" %}
+{% endif %}
+{% endblock pagination %}

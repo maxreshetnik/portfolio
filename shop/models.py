@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import (GenericForeignKey,
                                                 GenericRelation)
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.search import SearchVector
+from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.urls import reverse
 
@@ -21,6 +23,11 @@ class Account(USER):
 
     def __str__(self):
         return f"{self.username}'s account"
+
+
+class CategoryManager(models.Manager):
+    def get_by_natural_key(self, name):
+        return self.get(name=name)
 
 
 class Category(models.Model):
@@ -45,12 +52,21 @@ class Category(models.Model):
                           'model__endswith': 'product'},
     )
 
+    objects = CategoryManager()
+
     class Meta:
         ordering = ['name']
         verbose_name_plural = 'categories'
+        indexes = (
+            GinIndex(SearchVector('name', config='english'),
+                     name='%(app_label)s_%(class)s_vector_idx'),
+        )
 
     def __str__(self):
         return self.name
+
+    def natural_key(self):
+        return self.name,
 
     def get_absolute_url(self):
         if self.category is not None:
@@ -102,14 +118,31 @@ class Product(models.Model):
     class Meta:
         abstract = True
         ordering = ['-date_added']
+        indexes = (
+            GinIndex(SearchVector('name', 'marking', config='english'),
+                     name='%(class)s_vector_idx'),
+        )
 
     def __str__(self):
         return f'{self.category} {self.name} {self.marking}'
 
     def save(self, *args, **kwargs):
-        """Extends save method, resizes the loaded image"""
+        """
+        Extends save method, resizes an image, updates specs category.
+
+        When a category field is updated, it changes a category field
+        in the specs related model.
+        """
         services.handle_image_size(getattr(self, 'image'))
+        is_category_updated = False
+        if self.id is not None:
+            model = getattr(self, '_meta').model
+            is_category_updated = not model.objects.filter(
+                pk=self.pk, category_id=self.category_id,
+            ).exists()
         super().save(*args, **kwargs)
+        if is_category_updated:
+            self.specs.update(category_id=self.category_id)
 
 
 class Specification(models.Model):
@@ -162,6 +195,9 @@ class Specification(models.Model):
         max_length=100, blank=True, verbose_name='additional information',
     )
     date_added = models.DateField(auto_now_add=True)
+    category = models.ForeignKey(
+        'Category', on_delete=models.PROTECT, related_name='specs',
+    )
     content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE,
     )
@@ -173,18 +209,34 @@ class Specification(models.Model):
             models.CheckConstraint(
                 check=models.Q(available_qty__gte=0), name='qty_gte_0'),
         ]
+        indexes = (
+            GinIndex(SearchVector('tag', config='english'),
+                     name='%(app_label)s_%(class)s_vector_idx'),
+        )
 
     def __str__(self):
-        return f'{self.content_object}, {self.tag}'
+        product = self.content_object
+        return f'{self.category} {product.name} {product.marking}, {self.tag}'
+
+    def get_absolute_url(self):
+        kwargs = {
+            'category': str(self.category.category.name).lower(),
+            'subcategory': str(self.category.name).lower(),
+            'pk': self.pk
+        }
+        return reverse('shop:spec_detail', kwargs=kwargs)
 
     def save(self, *args, **kwargs):
-        """Extends save method, resizes an image and calculates
-        a value for the discount_price field.
+        """
+        Extends save method, resizes an image, calculates a discount price
+        and adds category from a product model.
         """
         services.handle_image_size(getattr(self, 'image'))
         self.discount_price = self.price - (
                 self.price * self.discount / 100
         ).quantize(self.price)
+        if self.category_id is None:
+            self.category_id = self.content_object.category_id
         super().save(*args, **kwargs)
 
 
@@ -287,7 +339,8 @@ class Order(models.Model):
         self.reserved = False
 
     def save(self, *args, **kwargs):
-        """Extends the method with a condition for canceled reserved orders."""
+        """Extends the method with a condition for
+        canceled reserved orders."""
         if (self.status == self.CANCELED and
                 self.reserved and self.id is not None):
             self.cancel_reserved_quantity()

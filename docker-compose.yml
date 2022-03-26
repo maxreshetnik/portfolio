@@ -37,7 +37,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
     volumes:
       - static:/usr/share/nginx/static:ro
       - media:/usr/share/nginx/media:ro

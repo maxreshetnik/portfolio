@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, override_settings
 from django.urls import reverse
 
 from .. import views
@@ -15,19 +15,25 @@ User = get_user_model()
 class CreateAccountViewTests(TestCase):
 
     def test_get_sign_up_page(self):
-        response = self.client.get(reverse('shop:sign_up'))
+        response = self.client.get(reverse('shop:sign_up'), secure=True)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTemplateUsed(response, 'registration/sign_up.html')
 
     def test_user_create_account(self):
+        """
+        Send data to create account and try to log in.
+
+        CreateAccountView redirects to next url if data is valid,
+        response status code 302.
+        """
         username = 'test'
         passwd = 'fdf24F42uih'
         response = self.client.post(
             reverse('shop:sign_up'),
             data={'username': username, 'password1': passwd,
                   'password2': passwd},
+            secure=True,
         )
-        # Test if form is valid then redirect to next url, code 302
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
         self.assertEqual(User.objects.filter(username='test').count(), 1)
         self.client.logout()
@@ -40,14 +46,16 @@ class HomePageViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.username = 'test'
-        cls.passwd = 'fdf24F42uih'
-        cls.user = User.objects.create_user(
-            username=cls.username, password=cls.passwd,
+        username, passwd = 'test', 'fdf24F42uih'
+        user = User.objects.create_user(
+            username=username, password=passwd,
         )
         cls.cart_order = Order.objects.create(
-            user=cls.user, status=Order.CART,
+            user=user, status=Order.CART,
         )
+        cls.username = username
+        cls.passwd = passwd
+        cls.user = user
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -80,22 +88,24 @@ class HomePageViewTests(TestCase):
         """
         Context data contains the user cart with the quantity and
         spec id as the dict key.
+
+        A user cart is the instance of Order model with a cart status.
+        First check if there are no items in the cart, then add item.
         """
         spec = self.specs.first()
         self.assertIsNotNone(spec, msg='No specification')
         self.request.user = self.user
         response = views.HomePageView.as_view()(self.request)
         self.assertIn('cart', response.context_data)
-        # If there are no items in the cart
         self.assertFalse(response.context_data['cart'])
         defaults = {'quantity': spec.pre_packing, 'price': spec.price}
-        # A user cart is the Order model with a cart status.
         self.cart_order.specs.add(spec, through_defaults=defaults)
         response = views.HomePageView.as_view()(self.request)
         self.assertIsInstance(response.context_data['cart'], dict)
         self.assertIn((spec.id, defaults['quantity']),
                       response.context_data['cart'].items())
 
+    @override_settings(SECURE_SSL_REDIRECT=False)
     def test_add_to_cart_for_anonymous_user(self):
         """
         Only a logged-in user can add products to his cart,
@@ -117,14 +127,16 @@ class HomePageViewTests(TestCase):
             len(spec_list), n, msg=f'Less than {n} specs in test db.',
         )
         self.client.force_login(self.user)
-        response = self.client.get(reverse('shop:home'))
+        response = self.client.get(reverse('shop:home'), secure=True)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         num_in_cart = len(response.context['cart'])
         for spec in spec_list:
             num_in_cart += 1
             response = self.client.post(
                 reverse('shop:home'),
-                data={'specification': spec.id, 'quantity': spec.pre_packing},
+                data={'specification': spec.id,
+                      'quantity': spec.pre_packing},
+                secure=True,
             )
             self.assertEqual(response.status_code, HTTPStatus.OK)
             self.assertIn(spec.id, response.context['cart'])
@@ -138,11 +150,12 @@ class HomePageViewTests(TestCase):
         spec = self.specs[0]
         qty = spec.pre_packing
         defaults = {'quantity': qty, 'price': spec.price}
-        # A user cart is the Order model with a cart status.
         self.cart_order.specs.add(spec, through_defaults=defaults)
         self.client.force_login(self.user)
         data = {'specification': spec.id, 'quantity': qty + spec.pre_packing}
-        response = self.client.post(reverse('shop:home'), data=data)
+        response = self.client.post(
+            reverse('shop:home'), data=data, secure=True,
+        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         cart = response.context['cart']
         self.assertEqual(cart.get(spec.id), data['quantity'])
@@ -151,11 +164,12 @@ class HomePageViewTests(TestCase):
         """Changing the quantity to zero remove an item from the cart."""
         spec = self.specs[0]
         defaults = {'quantity': spec.pre_packing, 'price': spec.price}
-        # A user cart is the Order model with a cart status.
         self.cart_order.specs.add(spec, through_defaults=defaults)
         self.client.force_login(self.user)
         data = {'specification': spec.id, 'quantity': 0}
-        response = self.client.post(reverse('shop:home'), data=data)
+        response = self.client.post(
+            reverse('shop:home'), data=data, secure=True,
+        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertNotIn(spec.id, response.context['cart'])
         self.assertFalse(self.cart_order.specs.filter(pk=spec.id).exists())
@@ -167,10 +181,11 @@ class SpecificationDetailTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.username = 'test'
-        cls.passwd = 'fdf24F42uih'
+        username, passwd = 'test', 'fdf24F42uih'
+        cls.username = username
+        cls.passwd = passwd
         cls.user = User.objects.create_user(
-            username=cls.username, password=cls.passwd,
+            username=username, password=passwd,
         )
 
     def setUp(self):
@@ -181,9 +196,11 @@ class SpecificationDetailTests(TestCase):
         Method get_template_names() adds a product model name to
         a template name and returns a list of template names.
         """
-        spec = Specification.objects.first()
+        spec = Specification.objects.select_related(
+            'category__category',
+        ).first()
         self.assertIsNotNone(spec, msg='No specification')
-        category = spec.content_object.category
+        category = spec.category
         kwargs = {
             'category': str(category.category.name).lower(),
             'subcategory': str(category.name).lower(),
@@ -215,11 +232,11 @@ class SearchViewTests(TestCase):
             category.categories.order_by().values_list('name', flat=True)
         ) + [category.name]
         response = self.client.get(
-            reverse('shop:search'), {'q': category_names[-1]},
+            reverse('shop:search'), {'q': category_names[-1]}, secure=True,
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         for spec in response.context[views.SearchView.context_object_name]:
-            self.assertIn(spec.category_name, category_names)
+            self.assertIn(spec.category.name, category_names)
 
     def test_category_search_result(self):
         """
@@ -228,15 +245,15 @@ class SearchViewTests(TestCase):
         """
         spec = Specification.objects.filter(
             available_qty__gt=0,
-        ).last()
+        ).select_related('category').last()
         self.assertIsNotNone(spec, msg='No spec in test db')
-        category = spec.content_object.category
+        category = spec.category
         response = self.client.get(
-            reverse('shop:search'), {'q': category.name},
+            reverse('shop:search'), {'q': category.name}, secure=True,
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         for spec in response.context[views.SearchView.context_object_name]:
-            self.assertEqual(spec.category_name, category.name)
+            self.assertEqual(spec.category.name, category.name)
 
     def test_category_and_product_search_result(self):
         """
@@ -249,7 +266,9 @@ class SearchViewTests(TestCase):
         product = spec.content_object
         q = (f'{product.category.name} {product.name} '
              f'{product.marking}')
-        response = self.client.get(reverse('shop:search'), {'q': q})
+        response = self.client.get(
+            reverse('shop:search'), {'q': q}, secure=True,
+        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         spec_list = list(
             response.context[views.SearchView.context_object_name]
@@ -273,7 +292,9 @@ class SearchViewTests(TestCase):
         self.assertIsNotNone(spec, msg='No spec in test db')
         product = spec.content_object
         q = f'{product.name} {product.marking} {spec.tag}'
-        response = self.client.get(reverse('shop:search'), {'q': q})
+        response = self.client.get(
+            reverse('shop:search'), {'q': q}, secure=True,
+        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
         spec_list = list(
             response.context[views.SearchView.context_object_name]

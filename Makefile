@@ -56,14 +56,24 @@ ifneq ($(RACK_ENV), dev)
 	false
 endif
 
-test:
-	./manage.py test --verbosity 2
+test: migrations_check
+	./manage.py test --verbosity 2 \
+	--settings $(PROJECT_NAME).settings.$(RACK_ENV)
+
+test_cov: migrations_check
+	coverage run --source=. \
+	manage.py test --verbosity 2 \
+	--settings $(PROJECT_NAME).settings.$(RACK_ENV)
+	coverage report
 
 migrate: makemigrations
 	./manage.py migrate
 
 makemigrations:
 	./manage.py makemigrations
+
+migrations_check:
+	./manage.py makemigrations --check --dry-run
 
 loaddata:
 ifeq ($(RACK_ENV), dev)
@@ -136,7 +146,7 @@ backend_loaddata:
 	docker cp $(src) $(backend_id):/home/$(PROJECT_NAME)/data.json
 	@docker exec -it $(backend_id) \
 	./manage.py loaddata /home/$(PROJECT_NAME)/data.json ; \
-	@docker exec -it $(backend_id) \
+	docker exec -it $(backend_id) \
 	rm /home/$(PROJECT_NAME)/data.json
 
 backend_loadmedia:

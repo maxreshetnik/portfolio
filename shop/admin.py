@@ -9,6 +9,8 @@ class SpecificationInline(GenericStackedInline):
 
     model = models.Specification
     extra = 0
+    readonly_fields = ('category',)
+    list_select_related = ('category',)
 
 
 class OrderItemInline(admin.StackedInline):

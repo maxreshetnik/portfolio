@@ -11,7 +11,6 @@
 	"remoteUser": "portfolio",
 	// "remoteUser": "root",
 
-	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"ms-python.python",
 		"ms-python.vscode-pylance",
@@ -19,9 +18,7 @@
 		"k--kato.intellij-idea-keybindings"
 	],
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// This can be used to network with other containers or the host.
-	"forwardPorts": [8000, "web:443", "web:8080"],
+	"forwardPorts": [8000, 8001, "web:443"],
 
 	// Set *default* container specific settings.json values on container create.
 	// "settings": {},

@@ -1,7 +1,6 @@
 [
 {
   "model": "shop.category",
-  "pk": 13,
   "fields": {
     "name": "Electronics",
     "category": null,
@@ -13,7 +12,6 @@
 },
 {
   "model": "shop.category",
-  "pk": 14,
   "fields": {
     "name": "Foodstuffs",
     "category": null,
@@ -25,7 +23,6 @@
 },
 {
   "model": "shop.category",
-  "pk": 15,
   "fields": {
     "name": "Clothing",
     "category": null,
@@ -37,10 +34,11 @@
 },
 {
   "model": "shop.category",
-  "pk": 16,
   "fields": {
     "name": "TV",
-    "category": 13,
+    "category": [
+      "Electronics"
+    ],
     "content_type": [
       "shop",
       "tvproduct"
@@ -49,10 +47,11 @@
 },
 {
   "model": "shop.category",
-  "pk": 17,
   "fields": {
     "name": "Smartphone",
-    "category": 13,
+    "category": [
+      "Electronics"
+    ],
     "content_type": [
       "shop",
       "smartphoneproduct"
@@ -61,10 +60,11 @@
 },
 {
   "model": "shop.category",
-  "pk": 18,
   "fields": {
     "name": "Water",
-    "category": 14,
+    "category": [
+      "Foodstuffs"
+    ],
     "content_type": [
       "shop",
       "foodproduct"
@@ -73,10 +73,11 @@
 },
 {
   "model": "shop.category",
-  "pk": 19,
   "fields": {
     "name": "Chocolate",
-    "category": 14,
+    "category": [
+      "Foodstuffs"
+    ],
     "content_type": [
       "shop",
       "foodproduct"
@@ -85,10 +86,11 @@
 },
 {
   "model": "shop.category",
-  "pk": 20,
   "fields": {
     "name": "Tomato",
-    "category": 14,
+    "category": [
+      "Foodstuffs"
+    ],
     "content_type": [
       "shop",
       "foodproduct"
@@ -97,10 +99,11 @@
 },
 {
   "model": "shop.category",
-  "pk": 21,
   "fields": {
     "name": "Hoodie",
-    "category": 15,
+    "category": [
+      "Clothing"
+    ],
     "content_type": [
       "shop",
       "clothingproduct"
@@ -109,10 +112,11 @@
 },
 {
   "model": "shop.category",
-  "pk": 22,
   "fields": {
     "name": "T-shirt",
-    "category": 15,
+    "category": [
+      "Clothing"
+    ],
     "content_type": [
       "shop",
       "clothingproduct"
@@ -134,6 +138,9 @@
     "available_qty": "100.000",
     "addition": "code 123.541",
     "date_added": "2021-06-28",
+    "category": [
+      "TV"
+    ],
     "content_type": [
       "shop",
       "tvproduct"
@@ -156,6 +163,9 @@
     "available_qty": "200.000",
     "addition": "code 145.545",
     "date_added": "2021-06-28",
+    "category": [
+      "Smartphone"
+    ],
     "content_type": [
       "shop",
       "smartphoneproduct"
@@ -178,6 +188,9 @@
     "available_qty": "70.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": [
+      "Tomato"
+    ],
     "content_type": [
       "shop",
       "foodproduct"
@@ -200,6 +213,9 @@
     "available_qty": "400.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": [
+      "Water"
+    ],
     "content_type": [
       "shop",
       "foodproduct"
@@ -222,6 +238,9 @@
     "available_qty": "100.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": [
+      "Chocolate"
+    ],
     "content_type": [
       "shop",
       "foodproduct"
@@ -244,6 +263,9 @@
     "available_qty": "81.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": [
+      "Hoodie"
+    ],
     "content_type": [
       "shop",
       "clothingproduct"
@@ -266,6 +288,9 @@
     "available_qty": "40.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": [
+      "Hoodie"
+    ],
     "content_type": [
       "shop",
       "clothingproduct"
@@ -288,6 +313,9 @@
     "available_qty": "50.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": [
+      "T-shirt"
+    ],
     "content_type": [
       "shop",
       "clothingproduct"
@@ -310,6 +338,9 @@
     "available_qty": "0.000",
     "addition": "",
     "date_added": "2021-06-28",
+    "category": [
+      "T-shirt"
+    ],
     "content_type": [
       "shop",
       "clothingproduct"
@@ -332,6 +363,9 @@
     "available_qty": "90.000",
     "addition": "code 145.546",
     "date_added": "2021-07-13",
+    "category": [
+      "Smartphone"
+    ],
     "content_type": [
       "shop",
       "smartphoneproduct"
@@ -350,7 +384,9 @@
     "unit": "PC",
     "unit_for_weight_vol": "KG",
     "date_added": "2021-06-03",
-    "category": 16,
+    "category": [
+      "TV"
+    ],
     "screen_diagonal": "32\"",
     "screen_resolution": "1920x1080"
   }
@@ -366,7 +402,9 @@
     "unit": "PC",
     "unit_for_weight_vol": "KG",
     "date_added": "2021-06-04",
-    "category": 17,
+    "category": [
+      "Smartphone"
+    ],
     "ram": "4GB / 6GB",
     "memory": "64GB/128GB"
   }
@@ -382,7 +420,9 @@
     "unit": "PC",
     "unit_for_weight_vol": "KG",
     "date_added": "2021-06-04",
-    "category": 21,
+    "category": [
+      "Hoodie"
+    ],
     "type": "M",
     "size": "L"
   }
@@ -398,7 +438,9 @@
     "unit": "PC",
     "unit_for_weight_vol": "KG",
     "date_added": "2021-06-04",
-    "category": 22,
+    "category": [
+      "T-shirt"
+    ],
     "type": "M",
     "size": "L"
   }
@@ -414,7 +456,9 @@
     "unit": "KG",
     "unit_for_weight_vol": "KG",
     "date_added": "2021-06-04",
-    "category": 20
+    "category": [
+      "Tomato"
+    ]
   }
 },
 {
@@ -428,7 +472,9 @@
     "unit": "BTL",
     "unit_for_weight_vol": "L",
     "date_added": "2021-06-04",
-    "category": 18
+    "category": [
+      "Water"
+    ]
   }
 },
 {
@@ -442,7 +488,9 @@
     "unit": "PC",
     "unit_for_weight_vol": "KG",
     "date_added": "2021-06-04",
-    "category": 19
+    "category": [
+      "Chocolate"
+    ]
   }
 }
 ]

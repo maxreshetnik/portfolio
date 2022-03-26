@@ -1,8 +1,8 @@
 from decimal import Decimal
 
 from django.db.models import (
-    Prefetch, FilteredRelation, Q, Subquery, OuterRef, Count,
-    Avg, F, When, Case, prefetch_related_objects,
+    Prefetch, FilteredRelation, Q, Subquery, OuterRef, Exists,
+    Count, Avg, F, When, Case, prefetch_related_objects,
 )
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -50,12 +50,6 @@ def get_rate_subquery():
     return Subquery(rates.values('point__avg'))
 
 
-def get_product_subquery(ct_id):
-    model = ContentType.objects.get_for_id(ct_id).model_class()
-    products = model.objects.filter(id=OuterRef('object_id'))
-    return Subquery(products.order_by().values('category__name'))
-
-
 def get_specs(queryset=None, ct_id=None):
     """
     Returns an annotated and product prefetched specification queryset,
@@ -66,14 +60,12 @@ def get_specs(queryset=None, ct_id=None):
     )
     rate_subquery = get_rate_subquery()
     if ct_id is not None:
-        product_subquery = get_product_subquery(ct_id)
-        queryset = queryset.filter(
-            content_type_id=ct_id,
-        ).annotate(category_name=product_subquery)
-
-    queryset = queryset.annotate(rating=rate_subquery)
+        queryset = queryset.filter(content_type_id=ct_id)
     prefetch = Prefetch('content_object', to_attr='product')
-    return queryset.prefetch_related(prefetch)
+    queryset = queryset.annotate(rating=rate_subquery).select_related(
+        'category__category',
+    ).prefetch_related(prefetch)
+    return queryset
 
 
 class ShopView(TemplateView):
@@ -130,7 +122,6 @@ class ShopView(TemplateView):
         context['catalog'] = self.categories.filter(
             category__isnull=True,
         )
-        # scale for star rating filled and half filled.
         context['rating_scale'] = [
             (n - 0.2, n - 0.75) for n in Rate.PointValue.values
         ]
@@ -163,99 +154,133 @@ class HomePageView(ShopView):
         return context
 
 
-def get_products_search_rank(query: SearchQuery, ct_obj: ContentType):
-    """Ranks products by search text"""
-    model = ct_obj.model_class()
-    vector = SearchVector('name', 'marking')
-    qs = model.objects.annotate(
-        rank=SearchRank(vector, query),
-    )
-    return qs
-
-
-def get_specs_search_rank(query: SearchQuery, ct_obj: ContentType):
-    """Ranks specifications by search text"""
-    vector_prod = SearchVector('name', 'marking')
-    vector = SearchVector('category_name', 'tag')
-    model = ct_obj.model_class()
-    prod_subquery = Subquery(model.objects.annotate(
-        rank=SearchRank(vector_prod, query),
-    ).filter(id=OuterRef('object_id')).order_by().values('rank'))
-    qs = get_specs(ct_id=ct_obj.id).annotate(
-        rank_prod=prod_subquery, rank_spec=SearchRank(vector, query),
-        rank=F('rank_prod') + F('rank_spec'),
-    )
-    return qs
-
-
-def search_in_products(query: SearchQuery):
-    """Searches for the query text in all product models
-    and filters by rank."""
-    rank = 0
-    ct_list = list(ContentType.objects.filter(model__iendswith='product'))
-    qs = get_specs_search_rank(query, ct_list.pop()).filter(rank__gt=rank)
-    for ct_obj in ct_list:
-        products = get_products_search_rank(query, ct_obj)
-        if products.filter(rank__gt=rank).exists():
-            qs = qs.union(
-                get_specs_search_rank(query, ct_obj).filter(rank__gt=rank),
-            )
-    return qs
-
-
-def search_in_category(query: SearchQuery, category):
-    """Searches for the query text for products
-    in a specific category."""
-    ct_obj = category.content_type
-    c_names = [category.name] + [c.name for c in category.subcategories]
-    qs = get_specs_search_rank(query, ct_obj)
-    qs = qs.filter(category_name__in=c_names)
-    for sub in category.subcategories:
-        if sub.content_type_id != category.content_type_id:
-            qs_other = get_specs_search_rank(query, sub.content_type)
-            qs = qs.union(qs_other.filter(category_name__in=c_names))
-    return qs
-
-
 class SearchView(MultipleObjectMixin, ShopView):
     """
-    Display a paginated list of products for a search query.
+    Display the paginated list of products for a search query.
 
     Uses full-text search, first searches for matches in category names
     to narrow down the search, then for all product models.
     """
     template_name = 'shop/search.html'
     context_object_name = 'spec_list'
-    q = []
+    ordering = ('-rank',)
+    num_obj = 100
+    q = None
+    query = None
     object_list = None
     paginate_by = 20
 
-    def get(self, request, *args, **kwargs):
-        q_string = request.GET.get('q', '')
-        self.q = q_string.split()
-        self.object_list = self.get_queryset()
-        context = self.get_context_data(q=q_string, **kwargs)
-        context['url_keys'] = f'&q={"+".join(self.q)}'
-        context['empty_msg'] = (f'No products were found for '
-                                f'"{q_string}".')
-        return self.render_to_response(context)
+    @staticmethod
+    def get_category_vector() -> SearchVector:
+        return SearchVector('name', config='english')
+
+    @staticmethod
+    def get_specs_vector() -> SearchVector:
+        return SearchVector('tag', config='english')
+
+    @staticmethod
+    def get_products_vector() -> SearchVector:
+        return SearchVector('name', 'marking', config='english')
+
+    def get_category_search_rank(self):
+        """Rank and filter category by search text"""
+        query = self.query
+        vector = self.get_category_vector()
+        qs = self.categories.annotate(search=vector).filter(search=query)
+        return qs.annotate(rank=SearchRank(vector, query))
+
+    def get_products_search(self, ct_obj: ContentType):
+        """Filter products by search text"""
+        vector = self.get_products_vector()
+        model = ct_obj.model_class()
+        qs = model.objects.annotate(search=vector).filter(search=self.query)
+        return qs
+
+    def get_specs_search_rank(self, ct_obj: ContentType, cat_list=None):
+        """Rank and filter specifications by search text"""
+        query = self.query
+        vector = self.get_specs_vector()
+        qs_prod = self.get_products_search(ct_obj)
+        product = qs_prod.filter(id=OuterRef('object_id'))
+        product_rank = product.annotate(rank=SearchRank('search', query))
+        qs = get_specs(ct_id=ct_obj.id).annotate(search=vector)
+        if cat_list is None:
+            qs = qs.filter(Q(Exists(product)) | Q(search=query))
+        else:
+            qs = qs.filter(category_id__in=cat_list)
+        qs = qs.annotate(
+            rank_prod=Subquery(product_rank.order_by().values('rank')),
+            rank_spec=SearchRank('search', query),
+        ).annotate(rank=Case(
+            When(rank_prod__isnull=True, then='rank_spec'),
+            default=(F('rank_prod') + F('rank_spec')),
+        ))
+        return qs
+
+    def search_in_category(self, category):
+        """Search the query text in a specific category."""
+        ct_obj = category.content_type
+        cat_list = [category.id] + [c.id for c in category.subcategories]
+        qs = self.get_specs_search_rank(ct_obj, cat_list=cat_list)
+        for sub in category.subcategories:
+            if sub.content_type_id != category.content_type_id:
+                qs_other = self.get_specs_search_rank(
+                    sub.content_type, cat_list=cat_list,
+                )
+                qs = qs.union(qs_other)
+        return qs
+
+    def search_in_products(self):
+        """Search the query text in all product models"""
+        ct_list = list(ContentType.objects.filter(model__iendswith='product'))
+        search_list = [
+            ct for ct in ct_list if self.get_products_search(ct).exists()
+        ]
+        if not search_list:
+            id_list = Specification.objects.annotate(
+                search=self.get_specs_vector()
+            ).filter(search=self.query).order_by().distinct(
+                'content_type_id'
+            ).values_list(
+                'content_type_id', flat=True
+            )
+            search_list = [ContentType.objects.get_for_id(i) for i in id_list]
+        if search_list:
+            ct_obj = search_list.pop()
+            qs = self.get_specs_search_rank(ct_obj)
+            for obj in search_list:
+                qs = qs.union(self.get_specs_search_rank(obj))
+        else:
+            qs = self.get_specs_search_rank(ct_list[0]).none()
+        return qs
 
     def get_queryset(self):
         if not self.q:
             return Specification.objects.none()
+        ordering = self.get_ordering()
         query = SearchQuery(self.q[0])
         for s in self.q[1:]:
             query |= SearchQuery(s)
-        vector = SearchVector('name')
+        self.query = query
+        category_qs = self.get_category_search_rank()
         try:
-            category = self.categories.annotate(
-                rank=SearchRank(vector, query),
-            ).filter(rank__gt=0).order_by('-rank')[0]
+            category = category_qs.order_by('-rank')[0]
         except IndexError:
-            qs = search_in_products(query)
+            qs = self.search_in_products()
         else:
-            qs = search_in_category(query, category)
-        return qs.order_by('-rank')
+            qs = self.search_in_category(category)
+        return qs.order_by(*ordering)[:self.num_obj]
+
+    def get_context_data(self, **kwargs):
+        q_string = self.request.GET.get('q', '')
+        self.q = q_string.split()
+        self.object_list = self.get_queryset()
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'q': q_string, 'url_keys': f'&q={"+".join(self.q)}',
+            'empty_msg': f'No products were found for "{q_string}".',
+        })
+        return context
 
 
 class CategorySpecList(MultipleObjectMixin, ShopView):
@@ -266,7 +291,7 @@ class CategorySpecList(MultipleObjectMixin, ShopView):
     context_object_name = 'spec_list'
     queryset = None
     object_list = None
-    ordering = ('category_name', 'price')
+    ordering = ('category__name', 'price')
     paginate_by = 2
 
     def get_category(self):
@@ -292,13 +317,15 @@ class CategorySpecList(MultipleObjectMixin, ShopView):
         category = self.get_category()
         ct_id = category.content_type_id
         queryset = get_specs(self.queryset, ct_id)
+        queryset = queryset.select_related(None).select_related('category')
         if not category.subcategories:
             self.kwargs['category'] = category.category
-            queryset = queryset.filter(category_name=category.name)
+            queryset = queryset.filter(category_id=category.id)
             return queryset.order_by(*ordering)
         for sub in category.subcategories:
             if sub.content_type_id != ct_id:
                 qs = get_specs(self.queryset, sub.content_type_id)
+                qs = qs.select_related(None).select_related('category')
                 queryset = queryset.union(qs)
         self.kwargs['category'] = category
         return queryset.order_by(*ordering)
@@ -374,6 +401,12 @@ class CartView(LoginRequiredMixin, ShopView):
     template_name = 'shop/cart.html'
 
     def get_context_data(self, **kwargs):
+        """
+        Extends the context by adding the user's cart with products.
+
+        Check if items have changed in price or available qty
+        and calculate the cost of the order.
+        """
         items = self.get_cart_items().annotate(
             total_price=F('price') * F('quantity'),
         ).select_related('order').order_by('-id')
@@ -389,15 +422,13 @@ class CartView(LoginRequiredMixin, ShopView):
         )
         spec_queryset = Specification.objects.annotate(
             best_price=price_case,
-        ).prefetch_related(
+        ).select_related('category__category').prefetch_related(
             Prefetch('content_object', to_attr='product'),
         )
         spec_prefetch = Prefetch(
             'specification', queryset=spec_queryset, to_attr='spec',
         )
         prefetch_related_objects(kwargs['cart'], spec_prefetch)
-        # check if items have changed in price or available qty
-        # and calculate the cost of the order.
         msg = 'Some items have changed in price or available qty.'
         for item in kwargs['cart']:
             if item.quantity > item.spec.available_qty:
@@ -509,7 +540,9 @@ class OrderDetailView(SingleObjectMixin, AccountView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        spec_queryset = Specification.objects.prefetch_related(
+        spec_queryset = Specification.objects.select_related(
+            'category__category',
+        ).prefetch_related(
             Prefetch('content_object', to_attr='product'),
         )
         spec_prefetch = Prefetch(
@@ -523,7 +556,7 @@ class OrderDetailView(SingleObjectMixin, AccountView):
 
     def post(self, request, *args, **kwargs):
         """
-        Changes the user's order status to confirmed or canceled.
+        Changes the user's order status to 'confirmed' or 'canceled'.
 
         If the order has not been shipped, the available quantity of
         each product is increased.

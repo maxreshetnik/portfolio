@@ -19,6 +19,25 @@ CSRF_COOKIE_SECURE = True
 
 DEBUG = False
 
+LOGGING["handlers"]["syslog"] = {
+    "formatter": "full",
+    "level": "DEBUG",
+    "class": "logging.handlers.SysLogHandler",
+    "address": "/dev/log",
+    "facility": "local4",
+}
+LOGGING["loggers"]["django.request"]["handlers"].append("syslog")
+
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+SECURE_HSTS_PRELOAD = True
+
+SECURE_HSTS_SECONDS = 31536000
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+SECURE_SSL_REDIRECT = True
+
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 SESSION_COOKIE_SECURE = True
