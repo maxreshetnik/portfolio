@@ -1,6 +1,5 @@
-
 {% extends "shop/base.html" %}
-{% load verbose_names decimal_normalize %}
+{% load static verbose_names decimal_normalize %}
 {% load get_cart_form_detail from cart_form %}
 
 {% block title %}
@@ -9,6 +8,10 @@
     {{ spec.product.marking }} {{ spec.tag }} - Shop
 </title>
 {% endblock title %}
+
+{% block jquery %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+{% endblock %}
 
 <!-- Section -->
 {% block breadcrumbs %}
@@ -45,27 +48,16 @@
                 {{ spec.category.name }} {{ spec.product.name }}
                 {{ spec.product.marking }} {{ spec.tag }}
             </h5>
-            {% if spec.rating is None %}
-            <div class="d-flex justify-content-start small mb-4">
-                <div class="bi-star"></div>
-                <div class="bi-star"></div>
-                <div class="bi-star"></div>
-                <div class="bi-star"></div>
-                <div class="bi-star"></div>
-            </div>
-            {% else %}
-            <div class="d-flex justify-content-start small text-warning mb-4">
-            {% for star, half in rating_scale %}
-                {% if spec.rating > star %}
-                <div class="bi-star-fill"></div>
-                {% elif spec.rating > half %}
-                <div class="bi-star-half"></div>
-                {% else %}
-                <div class="bi-star"></div>
-                {% endif %}
-            {% endfor %}
-            </div>
-            {% endif %}
+            <form method="post" id="rating_form_{{ spec.id }}" action="{{ view.request.get_full_path_info }}"
+                  data-ajax-url="{% url 'shop:rate_product' %}">
+                {% csrf_token %}
+                <div class="input-group p-0 mb-4 position-relative">
+                    {% include "shop/includes/rating_form.html" with obj=spec form=form_rating only %}
+                    <div class="rating-avg input-group-text text-secondary p-0 ms-1 bg-transparent border-0">
+                        {% if spec.rating_avg %}{{ spec.rating_avg }} ({{ spec.rating_count }}){% endif %}
+                    </div>
+                </div>
+            </form>
             <div class="card-text">
             {% if spec.sale_price %}
                 ${{ spec.sale_price }} <span class="badge bg-dark text-white top-0 ms-1">Special price</span>
@@ -87,7 +79,7 @@
             </div>
         </div>
         <div class="card-footer border-0 bg-transparent">
-            <form method="post" id="add-to-cart-{{ spec.id }}" action="{{ view.request.get_full_path_info }}#add-to-cart-{{ spec.id }}">
+            <form method="post" id="add-to-cart-{{ spec.id }}" action="{{ view.request.get_full_path_info }}">
                 {% csrf_token %}
                 {% get_cart_form_detail spec cart form is_auth=view.request.user.is_authenticated %}
             </form>
@@ -96,17 +88,105 @@
 </div>
 <div class="card my-5 py-1 border-0 text-center">
     <div class="card-body bg-light">
-        <h6 class="card-title text-white bg-secondary py-2 mb-3">More details:</h6>
+        <div class="card-title py-2 mb-3">
+            <ul class="nav nav-tabs px-xl-5" id="detailTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link link-secondary active fw-bold" id="more-details-tab"
+                            data-bs-toggle="tab" data-bs-target="#more-details"
+                            type="button" role="tab" aria-controls="more-details"
+                            aria-selected="true">More details
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link link-secondary fw-bold" id="review-tab" data-bs-toggle="tab"
+                            data-bs-target="#review" type="button" role="tab"
+                            aria-controls="review" aria-selected="false">Reviews and ratings
+                    </button>
+                </li>
+            </ul>
+        </div>
         <div class="card-text text-start px-5">
-            <div class="row row-cols-2 gy-2 border-0 justify-content-evenly">
-            {% block details %}
-                <div class="col-5">{% verbose_name spec "weight_vol" %}</div>
-                <div class="col-3">{{ spec.weight_vol|decimal_normalize }} {{ spec.product.unit_for_weight_vol|lower }}</div>
-            {% endblock %}
+            <div class="tab-content" id="detailTabContent">
+                <div class="tab-pane fade show active" id="more-details" role="tabpanel" aria-labelledby="more-details-tab">
+                    <div class="row row-cols-2 gy-2 border-0 justify-content-evenly">
+                    {% block details %}
+                        <div class="col-5">{% verbose_name spec "weight_vol" %}</div>
+                        <div class="col-3">
+                            {{ spec.weight_vol|decimal_normalize }} {{ spec.product.unit_for_weight_vol|lower }}
+                        </div>
+                    {% endblock %}
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="review" role="tabpanel" aria-labelledby="review-tab">
+                    <div class="row">
+                    {% block reviews %}
+                        <div class="col-12 px-2 mb-5">
+                            <div class="row">
+                                <div class="col-auto d-flex flex-column">
+                                    <label class="fw-bold mb-1" for="{{ form_rating.review.name }}-{{ spec.id }}">
+                                        {{ form_rating.review.label }}:
+                                    </label>
+                                    <a href="#{{ form_rating.review.name }}-{{ spec.id }}"
+                                       class="review-toggle small text-decoration-none mb-1">Edit
+                                    </a>
+                                </div>
+                                <div class="col">
+                                    <textarea class="form-control pt-0 mb-1 position-relative" name="{{ form_rating.review.name }}"
+                                              id="{{ form_rating.review.name }}-{{ spec.id }}"
+                                              form="rating_form_{{ spec.id }}" disabled>{{ spec.review|default_if_none:"" }}</textarea>
+                                    <div class="ms-3 bg-danger small rounded position-absolute bottom-100">
+                                        <div class="review-error text-white lh-sm small mx-1">{{ form_rating.review.errors|join:" " }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-2 px-2">
+                                    <div class="d-grid">
+                                        <button class="btn btn-secondary btn-sm"
+                                                type="submit" form="rating_form_{{ spec.id }}">Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-3">
+                        {% for obj in rating_list %}
+                            <div class="row text-start small justify-content-start py-3 border-bottom border-1">
+                                <h6 class="col">{{ obj.user.username }}</h6>
+                                <div class="col-auto d-flex flex-row-reverse text-warning">
+                                    {% for val, title in form_rating.fields.point.choices %}
+                                    {% if obj.point >= val %}
+                                    <i class="bi-star-fill me-1"></i>
+                                    {% else %}
+                                    <i class="bi-star me-1"></i>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div class="col-12">
+                                    <span class="fw-bold me-1">Review:</span>{{ obj.review }}
+                                </div>
+                            </div>
+                        {% empty %}
+                            <h6 class="text-center">There are no reviews for this product yet.</h6>
+                        {% endfor %}
+                        </div>
+                    {% endblock %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-{% endblock %}
+{% endblock content %}
 
+{% block script %}
+<script>
+document.querySelector('.review-toggle').addEventListener("click", textareaEditToggle);
+function textareaEditToggle() {
+    const el_textarea = document.querySelector(this.getAttribute('href'));
+    console.log('Edit review');
+    el_textarea.disabled = false;
+}
+</script>
+<script src="{% static 'shop/script_jquery.js' %}" type="text/javascript"></script>
+{{ block.super }}
+{% endblock script %}

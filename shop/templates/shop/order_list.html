@@ -18,6 +18,9 @@
         <a href="#" class="text-dark text-decoration-none fw-bold">
             <div class="w-100 p-1">Orders</div>
         </a>
+        <a href="{% url 'shop:rating_list' %}" class="text-dark text-decoration-none">
+            <div class="w-100 p-1 mb-2">Ratings</div>
+        </a>
     </div>
     <div class="col-12 col-md col-xxl-6 mt-sm-2 mx-xl-5">
         <h5 class="text-start mb-3">Orders:</h5>
@@ -52,20 +55,18 @@
                 <h6 class="text-end fw-bold mt-auto me-2">${{ order.order_cost }}</h6>
             </div>
         </div>
+        {% empty %}
+            <h6 class="">You have no orders yet.</h6>
         {% endfor %}
 
-        {% if order_list %}
-            {% if is_paginated %}
-                {% include "shop/includes/pagination.html" %}
-            {% endif %}
+        {% if is_paginated %}
+            {% include "shop/includes/pagination.html" %}
+        {% endif %}
 
         {% load static %}
         {% static "shop/modal_order.js" as modal_js %}
         {% include "shop/includes/modal_order.html" with next=view.request.get_full_path_info modal_js=modal_js %}
 
-        {% else %}
-            <h6 class="">You have no orders yet.</h6>
-        {% endif %}
     </div>
 </div>
 

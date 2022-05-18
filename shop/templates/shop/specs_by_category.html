@@ -1,8 +1,9 @@
-{% extends "shop/base.html" %}
+{% extends "shop/home.html" %}
+{% load decimal_normalize %}
 
 {% block title %}
 <title>
-    {{ view.kwargs.subcategory|default:category.name|capfirst }} - Shop
+    {{ category.name }} - Shop
 </title>
 {% endblock %}
 
@@ -10,20 +11,24 @@
 {% block breadcrumbs %}
 <ol class="breadcrumb ms-lg-4 ps-4">
     <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-decoration-none">Home</a></li>
-    {% if view.kwargs.subcategory %}
+    {% if category.category_id %}
     <li class="breadcrumb-item">
-        <a href="{% url 'shop:category' category.name|lower %}" class="text-decoration-none">{{ category.name }}</a>
+        <a href="{% url 'shop:category' category.category.name|lower %}" class="text-decoration-none">{{ category.category.name }}</a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page">{{ view.kwargs.subcategory|capfirst }}</li>
-    {% else %}
-    <li class="breadcrumb-item active" aria-current="page">{{ category.name }}</li>
     {% endif %}
+    <li class="breadcrumb-item active" aria-current="page">{{ category.name }}</li>
 </ol>
 {% endblock %}
 
-{% block content %}
-    {% include "shop/includes/section.html" %}
-{% endblock content %}
+{% block product_name %}
+{{ block.super }}
+{% if spec.pre_packing != 1 %}
+<br>
+<small class="card-subtitle text-muted">
+    pre-packing {{ spec.pre_packing|decimal_normalize }}{{ spec.product.unit|lower }}
+</small>
+{% endif %}
+{% endblock product_name %}
 
 {% block pagination %}
 {% if is_paginated %}

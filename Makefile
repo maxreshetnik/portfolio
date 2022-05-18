@@ -58,12 +58,12 @@ endif
 
 test: migrations_check
 	./manage.py test --verbosity 2 \
-	--settings $(PROJECT_NAME).settings.$(RACK_ENV)
+	--settings $(PROJECT_NAME).settings.prod $(t)
 
 test_cov: migrations_check
 	coverage run --source=. \
 	manage.py test --verbosity 2 \
-	--settings $(PROJECT_NAME).settings.$(RACK_ENV)
+	--settings $(PROJECT_NAME).settings.prod $(t)
 	coverage report
 
 migrate: makemigrations
@@ -243,7 +243,7 @@ service_logs:
 	docker logs -n 20 "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')"
 
 service_exec:
-	@docker exec "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
+	@docker exec $(opts) "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
 
 service_update:
 	docker service update --force $(opts) $(PROJECT_NAME)_$(s)
