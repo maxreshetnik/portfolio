@@ -65,9 +65,13 @@ jobs:
       - name: Up backend and deps
         env:
           BACKEND_IMAGE: ${{ steps.image_id.outputs.image }}:${{ steps.image_id.outputs.image_tag }}
+        run: make up s="--no-build backend"
+
+      - name: Healthcheck
         run: |
-          make up s="--no-build backend"
-          docker ps
+          echo "Wait 1 minute for services up complete"
+          sleep 1m && docker ps
+          make service_exec s=backend c="curl -f http://localhost:8000/" || ( make logs ; exit 1 )
 
       - name: Lint with flake8
         run: make backend_lint
