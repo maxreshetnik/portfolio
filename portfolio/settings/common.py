@@ -11,7 +11,7 @@ secrets_file_key = 'PROJECT_SECRETS_FILE'
 if data_dir_key in os.environ:
     DATA_DIR = Path(os.environ[data_dir_key])
 else:
-    BASE_DIR
+    DATA_DIR = BASE_DIR
 
 if secrets_file_key in os.environ:
     secrets_path = Path(os.environ[secrets_file_key])

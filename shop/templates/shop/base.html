@@ -20,6 +20,7 @@
          -->
         <!-- Core theme CSS (includes Bootstrap)-->
         <link href="{% static 'shop/style.css' %}" rel="stylesheet" type="text/css"/>
+        {% block jquery %}{% endblock %}
     </head>
     <body class="d-flex flex-column h-100">
         <!-- Header -->
@@ -29,7 +30,7 @@
                 <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
                     <div class="d-flex col-6 col-lg-auto me-auto">
                         <a href="/" class="navbar-brand me-4 text-dark">Portfolio</a>
-                        <a href="https://github.com/maxreshetnik/shop" class="nav-link link-secondary text-center me-4"><i class="bi-github me-1"></i>GitHub</a>
+                        <a href="https://github.com/maxreshetnik/portfolio" class="nav-link link-secondary text-center me-4"><i class="bi-github me-1"></i>GitHub</a>
                     </div>
                     <div class="col-lg-auto me-lg-auto">
                         <div class="text-start">
@@ -68,6 +69,7 @@
                             <ul class="dropdown-menu text-small" aria-labelledby="dropdownUser1">
                                 <li><a class="dropdown-item" href="{% url 'shop:profile' %}">Profile</a></li>
                                 <li><a class="dropdown-item" href="{% url 'shop:order_list' %}">Orders</a></li>
+                                <li><a class="dropdown-item" href="{% url 'shop:rating_list' %}">Ratings</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'shop:logout' %}?next={% url 'shop:home' %}">Sign out</a></li>
                             </ul>
@@ -76,7 +78,7 @@
                     {% else %}
                         {% block login %}
                         {% include "shop/includes/modal_login.html" with next=view.request.path_info %}
-                        <a class="btn btn-outline-dark me-2" data-bs-toggle="modal" href="#loginModal" role="button">Login</a>
+                        <a id="loginModalButton" class="btn btn-outline-dark me-2" data-bs-toggle="modal" href="#loginModal" role="button">Login</a>
                         <a class="btn btn-warning flex-shrink-0" data-bs-toggle="modal"  href="#signUpModal" role="button">Sign-up</a>
                         {% endblock login %}
                     {% endif %}
@@ -88,7 +90,12 @@
         <!-- Navigation-->
         <nav class="navbar navbar-expand-lg py-1 navbar-dark bg-dark">
             <div class="container px-4 px-lg-5 position-relative">
-                {% block message %}{% endblock %}
+                <div class="d-flex align-items-end flex-column small mx-3 mx-lg-5 mt-3 position-absolute top-100 end-0" style="max-width: 400px">
+                    {% block message %}
+                    <div id="ajax-error" class="alert alert-danger fade show d-none py-2 mb-2" role="alert"></div>
+                    <div id="ajax-success" class="alert alert-success fade show d-none py-2 mb-2" role="alert"></div>
+                    {% endblock message %}
+                </div>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
                         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -148,6 +155,7 @@
                 <p class="m-0 text-center text-white">Copyright &copy; Max Reshetnik {% now "Y" %}</p>
             </div>
         </footer>
+        {% block script %}
         <!-- Bootstrap core JS
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"></script>
         -->
@@ -157,5 +165,6 @@
         -->
         <!-- Core theme JS-->
         <script src="{% static 'shop/bootstrap.bundle.min.js' %}"></script>
+        {% endblock script %}
     </body>
 </html>

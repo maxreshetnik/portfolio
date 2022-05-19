@@ -1,0 +1,35 @@
+<input type="hidden" name="{{ form.content_type.name }}" value="{{ obj.content_type_id }}" required>
+<input type="hidden" name="{{ form.object_id.name }}" value="{{ obj.object_id }}" required>
+{% if obj.point %}
+<div class="rating">
+    {% for val, title in form.fields.point.choices %}
+    {% if obj.point == val %}
+    <!--suppress XmlDuplicatedId, XmlInvalidId -->
+    <input type="radio" class="btn-check rating-item" id="point_{{ obj.id }}_{{ val }}"
+           name="{{ form.point.name }}" value="{{ val }}" autocomplete="off" checked required>
+    {% else %}
+    <!--suppress XmlDuplicatedId, XmlInvalidId -->
+    <input type="radio" class="btn-check rating-item" id="point_{{ obj.id }}_{{ val }}"
+           name="{{ form.point.name }}" value="{{ val }}" autocomplete="off" required>
+    {% endif %}
+    <label for="point_{{ obj.id }}_{{ val }}" title="{{ title }}"
+           class="btn btn-sm text-warning bi-star p-0 pe-{{ star_dist|default:'1' }}">
+    </label>
+    {% endfor %}
+</div>
+{% else %}
+<div class="rating">
+    {% for val, title in form.fields.point.choices %}
+    <!--suppress XmlDuplicatedId, XmlInvalidId -->
+    <input type="radio" class="btn-check rating-item" id="point_{{ obj.id }}_{{ val }}"
+           name="{{ form.point.name }}" value="{{ val }}" autocomplete="off" required>
+    <label for="point_{{ obj.id }}_{{ val }}"
+           class="btn btn-sm bi-star{% if obj.rating_avg >= val %}-fill {% endif %} text-secondary p-0 pe-{{ star_dist|default:'1' }}"
+           title="{{ title }}">
+    </label>
+    {% endfor %}
+</div>
+{% endif %}
+<div class="ms-2 bg-danger small rounded position-absolute bottom-100" id="errors_{{ obj.id }}">
+    <div class="rating-error text-white lh-sm small mx-1">{{ form.point.errors|join:" " }}</div>
+</div>

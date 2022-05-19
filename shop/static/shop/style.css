@@ -29,15 +29,36 @@ input[type="search"]:focus {
   border-color:#dc3545 !important;
 }
 
-
 /* focus when child element is focused */
-
 .form-floating:focus-within {
   z-index: 2;
+}
 
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-menu {
+    display: block;
 }
-/*
-.input-group:focus-within {
-  border-color:rgb(20, 65, 128) !important;
+
+/* Stars for rating */
+.rating {
+    display: flex;
+    justify-content: center;
+    flex-direction: row-reverse
 }
-*/
+
+.rating > input:checked ~ label::before {
+    color: rgb(243, 195, 53);
+    content: "\f586";
+}
+
+.rating > input:hover ~ label::before,
+.rating > input:focus ~ label::before {
+    color: rgb(243, 195, 53);
+    content: "\f586" !important;
+}
+
+.rating:focus-within > label::before,
+.rating:hover > label::before {
+    color: rgb(243, 195, 53);
+    content: "\f588" !important;
+}

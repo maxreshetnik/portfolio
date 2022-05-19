@@ -1,9 +1,0 @@
-{% extends "shop/includes/section.html" %}
-
-{% block spec_link %}
-{{ spec.get_absolute_url }}
-{% endblock spec_link %}
-
-{% block product_name %}
-{{ spec.category.name }} {{ spec.product.name }} {{ spec.product.marking }} {{ spec.tag }}
-{% endblock product_name %}

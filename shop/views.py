@@ -14,8 +14,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.search import (
     SearchQuery, SearchRank, SearchVector,
 )
-from django.http import Http404, HttpResponseRedirect
-from django.views.generic import TemplateView
+from django.http import Http404, HttpResponseRedirect, JsonResponse
+from django.views.generic import TemplateView, FormView
 from django.views.generic.edit import DeletionMixin
 from django.views.generic.list import MultipleObjectMixin
 from django.views.generic.detail import SingleObjectMixin
@@ -26,7 +26,8 @@ from .models import (
     Category, Specification, Rate, Order, OrderItem,
 )
 from .forms import (CustomUserCreationForm, CustomUserChangeForm,
-                    PartialOrderItemForm, PartialOrderForm)
+                    PartialOrderItemForm, PartialOrderForm,
+                    PartialRatingForm)
 
 
 class CreateAccountView(LoginView):
@@ -42,41 +43,48 @@ class CreateAccountView(LoginView):
         return super().form_valid(form)
 
 
-def get_rate_subquery():
-    rates = Rate.objects.filter(
-        content_type_id=OuterRef('content_type_id'),
-        object_id=OuterRef('object_id'),
-    ).order_by().values('object_id').annotate(Avg('point'))
-    return Subquery(rates.values('point__avg'))
-
-
 def get_specs(queryset=None, ct_id=None):
     """
-    Returns an annotated and product prefetched specification queryset,
+    Returns specification queryset with product prefetched,
     filters if ContentType id of product model is passed.
     """
     queryset = queryset if queryset is not None else (
         Specification.objects.filter(available_qty__gt=0)
     )
-    rate_subquery = get_rate_subquery()
     if ct_id is not None:
         queryset = queryset.filter(content_type_id=ct_id)
     prefetch = Prefetch('content_object', to_attr='product')
-    queryset = queryset.annotate(rating=rate_subquery).select_related(
+    queryset = queryset.select_related(
         'category__category',
     ).prefetch_related(prefetch)
     return queryset
 
 
+def get_specs_with_rating(queryset):
+    """Annotate specs objects with rating and number of rate"""
+    rates = Rate.objects.filter(
+        content_type_id=OuterRef('content_type_id'),
+        object_id=OuterRef('object_id'),
+    ).order_by().values('object_id')
+    queryset = queryset.annotate(
+        rating_avg=Subquery(
+            rates.annotate(Avg('point')).values('point__avg'),
+        ),
+        rating_count=Subquery(
+            rates.annotate(Count('user')).values('user__count'),
+        ),
+    )
+    return queryset
+
+
 class ShopView(TemplateView):
     """
-    Base class for other views, contains navbar data.
+    Base class for views, which displays products.
 
     If user is authenticated displays form for add and remove
     products in cart, other way form for login and sign-up.
-
-    Category queryset with prefetched subcategories are used for catalog and
-    single category object in child classes.
+    Provide category queryset with prefetched subcategories
+    using for catalog and single category object.
     """
     template_name = 'shop/base.html'
     categories = Category.objects.prefetch_related(
@@ -85,27 +93,17 @@ class ShopView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         """
-        Receives and handles form data when user adds a product to user cart.
+        Receives and handles data when user adds a product to cart.
 
-        Saves the form if data is valid, creates order with
-        cart status.
+        Passes data to be processed in the CartItemFormView.
+        Add context data to response.
         """
-        if not self.request.user.is_authenticated:
-            return HttpResponseRedirect(
-                f'{reverse("shop:login")}?next={request.path}'
-            )
-        order, create = Order.objects.get_or_create(
-            user=request.user, status=Order.CART
-        )
-        form = PartialOrderItemForm(
-            request.POST, auto_id=False, instance=OrderItem(order=order),
-        )
-        if form.is_valid():
-            form.save()
-            return self.render_to_response(self.get_context_data(**kwargs))
-        else:
-            context = self.get_context_data(form=form, **kwargs)
-            return self.render_to_response(context)
+        view = CartItemFormView.as_view(template_name=self.template_name)
+        response = view(request, *args, **kwargs)
+        if isinstance(response, self.response_class):
+            self.extra_context = {'form': response.context_data['form']}
+            response.context_data.update(self.get_context_data(**kwargs))
+        return response
 
     def get_cart_items(self):
         items = OrderItem.objects.annotate(user_orders=FilteredRelation(
@@ -122,11 +120,8 @@ class ShopView(TemplateView):
         context['catalog'] = self.categories.filter(
             category__isnull=True,
         )
-        context['rating_scale'] = [
-            (n - 0.2, n - 0.75) for n in Rate.PointValue.values
-        ]
-        if 'form' not in kwargs:
-            context['form'] = PartialOrderItemForm(auto_id=False)
+        context['form_rating'] = PartialRatingForm(auto_id=False)
+        context['form'] = PartialOrderItemForm(auto_id=False)
         if not self.request.user.is_authenticated:
             context['form_login'] = AuthenticationForm(
                 auto_id='login_%s', label_suffix='',
@@ -149,7 +144,8 @@ class HomePageView(ShopView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        spec_qs = get_specs().order_by('-id')
+        spec_qs = get_specs()
+        spec_qs = get_specs_with_rating(spec_qs).order_by('-id')
         context['spec_list'] = spec_qs[:self.number_of_specs]
         return context
 
@@ -215,7 +211,7 @@ class SearchView(MultipleObjectMixin, ShopView):
             When(rank_prod__isnull=True, then='rank_spec'),
             default=(F('rank_prod') + F('rank_spec')),
         ))
-        return qs
+        return get_specs_with_rating(qs)
 
     def search_in_category(self, category):
         """Search the query text in a specific category."""
@@ -289,10 +285,9 @@ class CategorySpecList(MultipleObjectMixin, ShopView):
     """
     template_name = 'shop/specs_by_category.html'
     context_object_name = 'spec_list'
-    queryset = None
-    object_list = None
     ordering = ('category__name', 'price')
     paginate_by = 2
+    object_list = None
 
     def get_category(self):
         try:
@@ -311,23 +306,23 @@ class CategorySpecList(MultipleObjectMixin, ShopView):
 
         Object of the specification has the attribute
         product to which it belongs.
-        Queryset for different products are combined.
+        Queryset for different product type are combined.
         """
         ordering = self.get_ordering()
         category = self.get_category()
+        self.kwargs['category'] = category
         ct_id = category.content_type_id
-        queryset = get_specs(self.queryset, ct_id)
-        queryset = queryset.select_related(None).select_related('category')
+        queryset = get_specs(queryset=self.queryset, ct_id=ct_id)
         if not category.subcategories:
-            self.kwargs['category'] = category.category
             queryset = queryset.filter(category_id=category.id)
+            queryset = get_specs_with_rating(queryset)
             return queryset.order_by(*ordering)
+        queryset = get_specs_with_rating(queryset)
         for sub in category.subcategories:
             if sub.content_type_id != ct_id:
                 qs = get_specs(self.queryset, sub.content_type_id)
-                qs = qs.select_related(None).select_related('category')
+                qs = get_specs_with_rating(qs)
                 queryset = queryset.union(qs)
-        self.kwargs['category'] = category
         return queryset.order_by(*ordering)
 
     def get_context_data(self, **kwargs):
@@ -371,15 +366,45 @@ class PopularSpecList(CategorySpecList):
 
 class SpecificationDetail(SingleObjectMixin, ShopView):
     """
-    Display product details, uses a custom template for different ContentTypes.
+    Display product details, uses a custom template
+    for different ContentTypes.
     """
     template_name = 'shop/spec_detail/spec.html'
     context_object_name = 'spec'
     object = None
 
+    def post(self, request, *args, **kwargs):
+        """
+        Receive and handle data when user rate a product.
+
+        Pass data to be processed in the RatingFormView.
+        Add context data to response.
+        """
+        if 'point' in request.POST:
+            view = RatingFormView.as_view(template_name=self.template_name)
+            response = view(request, *args, **kwargs)
+            if isinstance(response, self.response_class):
+                context = self.get_context_data(**kwargs)
+                context['form_rating'] = response.context_data['form']
+                response.context_data.update(context)
+            return response
+        return super().post(request, *args, **kwargs)
+
     def get_queryset(self):
-        queryset = Specification.objects.filter(pk=self.kwargs['pk'])
-        return get_specs(queryset)
+        queryset = get_specs(
+            queryset=Specification.objects.filter(pk=self.kwargs['pk']),
+        )
+        if self.request.user.is_authenticated:
+            rates = Rate.objects.filter(
+                user_id=self.request.user.id,
+                content_type_id=OuterRef('content_type_id'),
+                object_id=OuterRef('object_id'),
+            ).order_by()
+            queryset = queryset.annotate(
+                point=Subquery(rates.values('point')),
+                review=Subquery(rates.values('review')),
+            )
+        return get_specs_with_rating(queryset)
 
     def get_template_names(self):
         t_names = super().get_template_names()
@@ -390,6 +415,10 @@ class SpecificationDetail(SingleObjectMixin, ShopView):
         self.object = self.get_object()
         context = super().get_context_data(**kwargs)
         context['spec_template_name'] = self.template_name
+        context['rating_list'] = Rate.objects.filter(
+            content_type_id=self.object.content_type_id,
+            object_id=self.object.object_id,
+        ).select_related('user').order_by('-id')[:10]
         return context
 
 
@@ -400,6 +429,27 @@ class CartView(LoginRequiredMixin, ShopView):
     login_url = reverse_lazy('shop:login')
     template_name = 'shop/cart.html'
 
+    def get_cart_items_with_specs(self) -> list:
+        item_list = list(self.get_cart_items().annotate(
+            total_price=F('price') * F('quantity'),
+        ).select_related('order').order_by('-id'))
+        if item_list:
+            price_case = Case(
+                When(sale_price__gt=0, then=F('sale_price')),
+                When(discount__gt=0, then=F('discount_price')),
+                default=F('price'),
+            )
+            spec_queryset = Specification.objects.annotate(
+                best_price=price_case,
+            ).select_related('category__category').prefetch_related(
+                Prefetch('content_object', to_attr='product'),
+            )
+            spec_prefetch = Prefetch(
+                'specification', queryset=spec_queryset, to_attr='spec',
+            )
+            prefetch_related_objects(item_list, spec_prefetch)
+        return item_list
+
     def get_context_data(self, **kwargs):
         """
         Extends the context by adding the user's cart with products.
@@ -407,30 +457,10 @@ class CartView(LoginRequiredMixin, ShopView):
         Check if items have changed in price or available qty
         and calculate the cost of the order.
         """
-        items = self.get_cart_items().annotate(
-            total_price=F('price') * F('quantity'),
-        ).select_related('order').order_by('-id')
-        kwargs.update({'num_in_cart': 0, 'cart': list(items),
-                       'order_cost': Decimal('0.00')})
-        if not kwargs['cart']:
-            return super().get_context_data(**kwargs)
-
-        price_case = Case(
-            When(sale_price__gt=0, then=F('sale_price')),
-            When(discount__gt=0, then=F('discount_price')),
-            default=F('price'),
-        )
-        spec_queryset = Specification.objects.annotate(
-            best_price=price_case,
-        ).select_related('category__category').prefetch_related(
-            Prefetch('content_object', to_attr='product'),
-        )
-        spec_prefetch = Prefetch(
-            'specification', queryset=spec_queryset, to_attr='spec',
-        )
-        prefetch_related_objects(kwargs['cart'], spec_prefetch)
+        item_list = self.get_cart_items_with_specs()
+        num_in_cart, order_cost = 0, Decimal('0.00')
         msg = 'Some items have changed in price or available qty.'
-        for item in kwargs['cart']:
+        for item in item_list:
             if item.quantity > item.spec.available_qty:
                 item.error_msg = (f'{item.spec.available_qty.normalize()} '
                                   f'in stock.')
@@ -438,24 +468,103 @@ class CartView(LoginRequiredMixin, ShopView):
             elif item.price != item.spec.best_price:
                 item.error_msg = 're-add to cart or update quantity.'
                 kwargs['error_msg'] = msg
-            kwargs['order_cost'] += item.total_price
-            kwargs['num_in_cart'] += 1
-        kwargs['order_cost'] = kwargs['order_cost'].quantize(Decimal('0.00'))
-
+            order_cost += item.total_price
+            num_in_cart += 1
+        kwargs.update({'order_cost': order_cost.quantize(Decimal('0.00')),
+                       'num_in_cart': num_in_cart, 'cart': item_list})
         context = super().get_context_data(**kwargs)
-        context['order'] = kwargs['cart'][0].order
+        context['order'] = Order.objects.filter(
+                user=self.request.user, status=Order.CART,
+        ).first()
         context['messages'] = messages.get_messages(self.request)
         return context
 
 
-class AccountView(LoginRequiredMixin, ShopView):
+class CartItemFormView(LoginRequiredMixin, FormView):
+    """
+    Add item to user cart, display items in cart on GET.
 
+    Create the order with cart status if it doesn't exist.
+    Instantiate a partial form with OrderItem instance.
+    Return template or json response.
+    """
+    form_class = PartialOrderItemForm
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponseRedirect(reverse('shop:cart'))
+
+    def get_login_url(self):
+        return f'{reverse("shop:login")}?next={self.request.path}'
+
+    def get_success_url(self):
+        return self.request.get_full_path()
+
+    def get_form_instance(self):
+        """Provide instance for instantiating the form."""
+        cart_order, create = Order.objects.get_or_create(
+            user=self.request.user, status=Order.CART
+        )
+        return OrderItem(order=cart_order)
+
+    def get_form_kwargs(self):
+        """Provide OrderItem instance for instantiating the form."""
+        kwargs = super().get_form_kwargs()
+        kwargs.update({
+            'instance': self.get_form_instance(), 'auto_id': False,
+        })
+        return kwargs
+
+    def get_success_json_response(self, obj):
+        num_in_cart = OrderItem.objects.annotate(
+            user_orders=FilteredRelation(
+                'order', condition=Q(order__user_id=self.request.user.id),
+            ),
+        ).filter(user_orders__status=Order.CART).count()
+        context = {
+            'num_in_cart': num_in_cart,
+            "success": ("The quantity of the item has changed." if
+                        obj.quantity else "Item removed from cart."),
+        }
+        return JsonResponse(context, status=200)
+
+    def form_valid(self, form):
+        """If the form is valid, save the associated model."""
+        obj = form.save()
+        if self.request.is_ajax():
+            return self.get_success_json_response(obj)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        if self.request.is_ajax():
+            errors = form.errors.as_json()
+            return JsonResponse({"errors": errors}, status=400)
+        return super().form_invalid(form)
+
+
+class AccountView(LoginRequiredMixin, TemplateView):
+    """
+    Base class for views, which displays user personal menus.
+
+    Provide category queryset for navbar catalog and
+    number of items in cart.
+    """
+    template_name = 'shop/base.html'
     login_url = reverse_lazy('shop:login')
 
     def get_context_data(self, **kwargs):
-        kwargs['cart'] = self.get_cart_items().count()
         context = super().get_context_data(**kwargs)
-        context['messages'] = messages.get_messages(self.request)
+        cart_num = OrderItem.objects.annotate(
+            user_orders=FilteredRelation(
+                'order', condition=Q(order__user_id=self.request.user.id),
+            ),
+        ).filter(user_orders__status=Order.CART).count()
+        catalog = Category.objects.prefetch_related(
+            Prefetch('categories', to_attr='subcategories'),
+        ).filter(category__isnull=True)
+        context.update({
+            'cart': cart_num, 'catalog': catalog,
+            'messages': messages.get_messages(self.request),
+        })
         return context
 
 
@@ -466,7 +575,7 @@ class PlaceOrderView(AccountView):
     """
     template_name = 'shop/order_placed.html'
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, **kwargs):
         try:
             order = Order.objects.get(
                 user=request.user, status=Order.CART,
@@ -488,29 +597,22 @@ class PlaceOrderView(AccountView):
             else:
                 msg = 'Quantity is not available for some items'
                 messages.error(request, msg, extra_tags='danger')
-                return HttpResponseRedirect(f'{reverse("shop:cart")}')
+                return HttpResponseRedirect(reverse("shop:cart"))
         if form.has_error('order_cost', code='price'):
             messages.error(request, 'Some items have changed in price',
                            extra_tags='danger')
-            return HttpResponseRedirect(f'{reverse("shop:cart")}')
+            return HttpResponseRedirect(reverse("shop:cart"))
         else:
             for error in form.errors.values():
                 messages.warning(request, '\n'.join(error))
-            return HttpResponseRedirect(f'{reverse("shop:cart")}')
-
-    def get_context_data(self, **kwargs):
-        kwargs['form'] = ''
-        context = super().get_context_data(**kwargs)
-        return context
+            return HttpResponseRedirect(reverse("shop:cart"))
 
 
 class OrderListView(MultipleObjectMixin, AccountView):
     """Displays user orders."""
     template_name = 'shop/order_list.html'
     context_object_name = 'order_list'
-    object_list = None
-    paginate_by = 2
-    queryset = None
+    paginate_by = 20
 
     def get_queryset(self):
         queryset = Order.objects.filter(
@@ -519,10 +621,8 @@ class OrderListView(MultipleObjectMixin, AccountView):
         return queryset
 
     def get_context_data(self, **kwargs):
-        self.object_list = self.get_queryset()
-        kwargs['form'] = ''
-        context = super().get_context_data(**kwargs)
-        return context
+        object_list = self.get_queryset()
+        return super().get_context_data(object_list=object_list, **kwargs)
 
 
 class OrderDetailView(SingleObjectMixin, AccountView):
@@ -554,7 +654,7 @@ class OrderDetailView(SingleObjectMixin, AccountView):
         context = self.get_context_data(object=self.object, **kwargs)
         return self.render_to_response(context)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, **kwargs):
         """
         Changes the user's order status to 'confirmed' or 'canceled'.
 
@@ -576,7 +676,6 @@ class OrderDetailView(SingleObjectMixin, AccountView):
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
-        kwargs['form'] = ''
         context = super().get_context_data(**kwargs)
         return context
 
@@ -634,7 +733,72 @@ class PersonalInfoView(ProfileView):
         if form.is_valid():
             form.save()
             messages.success(request, 'Personal information changed.')
-            return HttpResponseRedirect(f'{reverse("shop:profile")}')
+            return HttpResponseRedirect(reverse("shop:profile"))
         else:
             context = self.get_context_data(form_info=form, **kwargs)
             return self.render_to_response(context)
+
+
+class RatingListView(MultipleObjectMixin, AccountView):
+    """Displays user ratings and reviews."""
+    template_name = 'shop/rating_list.html'
+    context_object_name = 'rating_list'
+    paginate_by = 20
+    ordering = ('id',)
+
+    def post(self, request, *args, **kwargs):
+        """
+        Receives and handles data when a user rates a product.
+
+        Passes data to be processed in the RatingFormView.
+        Add context data to response.
+        """
+        view = RatingFormView.as_view(template_name=self.template_name)
+        response = view(request, *args, **kwargs)
+        if isinstance(response, self.response_class):
+            response.context_data.update(
+                self.get_context_data(**response.context_data)
+            )
+        return response
+
+    def get_queryset(self):
+        ordering = self.get_ordering()
+        queryset = Rate.objects.filter(
+            user_id=self.request.user.id,
+        ).prefetch_related(Prefetch('content_object', to_attr='product'))
+        return queryset.order_by(*ordering)
+
+    def get_context_data(self, **kwargs):
+        object_list = self.get_queryset()
+        if 'form' not in kwargs:
+            kwargs['form'] = PartialRatingForm(auto_id=False)
+        return super().get_context_data(object_list=object_list, **kwargs)
+
+
+class RatingFormView(CartItemFormView):
+    """
+    Update product rating and review, display ratings on GET.
+
+    Instantiate a partial form with Rate model instance.
+    Return template or json response.
+    """
+    template_name = 'shop/rating_list.html'
+    form_class = PartialRatingForm
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponseRedirect(reverse('shop:rating_list'))
+
+    def get_form_instance(self):
+        """Provide instance for instantiating the form."""
+        return Rate(user=self.request.user)
+
+    def get_success_json_response(self, obj):
+        context = Rate.objects.filter(
+            content_type_id=obj.content_type_id,
+            object_id=obj.object_id,
+        ).aggregate(
+            rating_avg=Avg('point'),
+            rating_count=Count('user'),
+        )
+        context['success'] = 'Rating saved.'
+        return JsonResponse(context, status=200)

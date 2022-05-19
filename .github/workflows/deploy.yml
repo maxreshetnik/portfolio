@@ -125,9 +125,9 @@ jobs:
           PROJECT_NAME: ${{ needs.build.outputs.repo_name }}
         run: |
           make web_check || ( make service_logs s=web ; exit 1 )
-          echo "Check ssl, reload nginx conf and try again after 1 min if check error."
+          echo "Check ssl, reload nginx conf and try again after 5 min if check error."
           make ssl_check || make service_exec s=web c="nginx -s reload"
-          sleep 1m && make ssl_check || ( make service_logs s=ssl ; exit 1 )
+          sleep 5m && make ssl_check || ( make service_logs s=ssl ; exit 1 )
 
       - name: Remove all unused images
         run: docker image prune -af

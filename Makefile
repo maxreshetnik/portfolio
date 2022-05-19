@@ -58,12 +58,12 @@ endif
 
 test: migrations_check
 	./manage.py test --verbosity 2 \
-	--settings $(PROJECT_NAME).settings.$(RACK_ENV)
+	--settings $(PROJECT_NAME).settings.prod $(t)
 
 test_cov: migrations_check
 	coverage run --source=. \
 	manage.py test --verbosity 2 \
-	--settings $(PROJECT_NAME).settings.$(RACK_ENV)
+	--settings $(PROJECT_NAME).settings.prod $(t)
 	coverage report
 
 migrate: makemigrations
@@ -133,11 +133,11 @@ backend_migrations_check:
 	./manage.py makemigrations --check --dry-run
 
 backend_check: backend_check_db backend_check_deploy
-			
+
 backend_check_db:
 	docker exec $(backend_id) \
 	./manage.py check --database default
-			
+
 backend_check_deploy:
 	docker exec $(backend_id) \
 	./manage.py check --deploy
@@ -151,12 +151,12 @@ backend_loaddata:
 
 backend_loadmedia:
 	docker cp "$(src)" $(backend_id):/home/$(PROJECT_NAME)/
-	
+
 backend_test: backend_migrations_check
 	# Run test
 	@docker exec $(backend_id) \
 	./manage.py test --verbosity 2
-		
+
 backend_test_cov: backend_migrations_check
 	@docker exec $(backend_id) coverage --version
 	# Run tests
@@ -243,7 +243,7 @@ service_logs:
 	docker logs -n 20 "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')"
 
 service_exec:
-	@docker exec "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
+	@docker exec $(opts) "$$(docker ps | grep '$(s)' | awk '{ print $$1 }')" $(c)
 
 service_update:
 	docker service update --force $(opts) $(PROJECT_NAME)_$(s)

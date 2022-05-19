@@ -283,7 +283,7 @@ class Order(models.Model):
         (CART, 'Cart'), (PROCESSING, 'Processing'), (SHIPPING, 'Shipping'),
         (FINISHED, 'Finished'), (CANCELED, 'Canceled'),
     ]
-    status = models.PositiveIntegerField(
+    status: int = models.PositiveIntegerField(
         choices=STATUS_CHOICES,
     )
     address = models.TextField(blank=True)
@@ -348,7 +348,6 @@ class Order(models.Model):
 
     def delete(self, *args, **kwargs):
         """Removes only completed or canceled orders."""
-        # noinspection PyTypeChecker
         if self.status > self.SHIPPING:
             super().delete(*args, **kwargs)
 
@@ -391,21 +390,27 @@ class OrderItem(models.Model):
 class Rate(models.Model):
 
     class PointValue(models.IntegerChoices):
-        one, two, three, four, five = 1, 2, 3, 4, 5
+        five, four, three, two, one = 5, 4, 3, 2, 1
 
-    point = models.IntegerField(choices=PointValue.choices)
+    point = models.IntegerField(
+        choices=PointValue.choices, default=0,
+    )
     review = models.TextField(blank=True)
     user = models.ForeignKey(USER, on_delete=models.CASCADE)
     content_type = models.ForeignKey(
         ContentType, on_delete=models.CASCADE,
+        limit_choices_to={'app_label': 'shop',
+                          'model__endswith': 'product'},
     )
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['user', 'object_id'],
-                                    name='user_rate_unique'),
+            models.UniqueConstraint(
+                fields=['user', 'content_type', 'object_id'],
+                name='user_rate_unique',
+            ),
         ]
 
     def __str__(self):

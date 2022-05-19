@@ -2,10 +2,11 @@ from decimal import ROUND_FLOOR, Decimal
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from django.forms import ModelForm, ValidationError, HiddenInput
+from django.forms import ModelForm, ValidationError, HiddenInput, RadioSelect
+from django.db.utils import IntegrityError
 from django.db.models import Subquery, OuterRef, F, When, Case, Sum
 
-from .models import OrderItem, Order
+from .models import OrderItem, Order, Rate
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -141,10 +142,11 @@ class OrderItemForm(ModelForm):
     def clean_quantity(self):
         qty = self.cleaned_data['quantity']
         spec = self.cleaned_data['specification']
-        if qty > (av_qty := spec.available_qty):
-            raise ValidationError(
-                f'Only {av_qty.normalize()} left.'
-            )
+        if qty > (q := spec.available_qty):
+            raise ValidationError('Only {} left.'.format(
+                q.quantize(Decimal(1)) if q == q.to_integral() else
+                q.normalize()
+            ))
         if (pack_qty := spec.pre_packing) != 1:
             qty = (qty // pack_qty) * pack_qty
         else:
@@ -185,3 +187,34 @@ class PartialOrderItemForm(OrderItemForm):
         model = OrderItem
         fields = ('specification', 'quantity')
         widgets = {'specification': HiddenInput}
+
+
+class PartialRatingForm(ModelForm):
+
+    class Meta:
+        model = Rate
+        exclude = ('user',)
+        widgets = {'point': RadioSelect, 'content_type': HiddenInput}
+
+    def save(self, commit=True):
+        """
+        Save the form data and handle a database exception.
+
+        If a user already has a record for the product
+        then update rating and review in the database.
+        Catch the database exception that is raised when
+        checking the unique constraint given in the model.
+        """
+        obj = super().save(commit=False)
+        if commit:
+            try:
+                obj.save()
+            except IntegrityError:
+                return self._meta.model.objects.update_or_create(
+                    user_id=obj.user_id,
+                    content_type_id=obj.content_type_id,
+                    object_id=obj.object_id,
+                    defaults={field: self.cleaned_data[field] for
+                              field in self.changed_data},
+                )[0]
+        return obj

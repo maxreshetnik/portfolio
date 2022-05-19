@@ -4,22 +4,36 @@ Portfolio
 
 maxreshetnik.tk_ source code
 ------------------------------
-including `Shop`_ website
+including `online store`_ demo website
 
 This backend web application is developed in Python using the Django framework,
 and Bootstrap tools are used to visually demonstrate how the backend works.
 
-The main application allows an administrator to create multiple portfolios with
-a set of projects and other information in each, then choose the most suitable
+The main application allows an administrator to create portfolio with a set of
+projects and other information in each, then choose the most suitable
 portfolio to display on the domain home page.
 
-Another purpose of this project is to create connection point for my django apps
-to demonstrate how they work. One of such app integrated into this project is
-an online store, for more details see in `Shop app`_ repository.
+The content of the main page is cached using memcache,
+the page has a form for feedback with sending a message to e-mail.
+
+| Another purpose of this project is to showcase how my django applications work.
+| One of such app integrated into this project is the `shop`_.
+
+Here are the shop features:
+    * Visitors browse products which are grouped in categories
+    * Product cards list page and details page with add to cart form
+    * Full-text product search
+    * Shopping cart & checkout process
+    * Confirmation and cancellation of orders by users
+    * Ratings and reviews for products
+    * User account with personal info and orders.
+    * Admin site for content management
+    * Control of the available product quantity
+    * Breadcrumb navigation & Responsive design
 
 .. _maxreshetnik.tk: https://maxreshetnik.tk/
-.. _Shop: https://maxreshetnik.tk/shop/
-.. _Shop app: https://github.com/maxreshetnik/shop
+.. _online store: https://maxreshetnik.tk/shop/
+.. _shop: `online store`_
 
 To run locally, do the usual
 """"""""""""""""""""""""""""""

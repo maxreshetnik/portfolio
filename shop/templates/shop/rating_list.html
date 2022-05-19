@@ -1,0 +1,101 @@
+{% extends "shop/profile.html" %}
+{% load static %}
+
+{% block title %}
+<title>Ratings and reviews - Shop</title>
+{% endblock %}
+
+{% block jquery %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+{% endblock %}
+
+{% block current_page %}
+<li class="breadcrumb-item active" aria-current="page">Ratings and reviews</li>
+{% endblock current_page %}
+
+{% block content %}
+<div class="row">
+    <div class="col-3 col-xl-2 mx-lg-4 mb-4">
+        <a href="{% url 'shop:profile' %}" class="text-dark text-decoration-none">
+            <div class="w-100 p-1 mb-2">Profile</div>
+        </a>
+        <a href="{% url 'shop:order_list' %}" class="text-dark text-decoration-none">
+            <div class="w-100 p-1 mb-2">Orders</div>
+        </a>
+        <a href="#" class="text-dark text-decoration-none fw-bold">
+            <div class="w-100 p-1">Ratings</div>
+        </a>
+    </div>
+    <div class="col-12 col-md col-xxl-6 mt-sm-2 mx-xl-5">
+        <h5 class="text-start mb-3">Ratings and reviews:</h5>
+        {% for obj in rating_list %}
+            <div class="row text-start small justify-content-start mx-0 mb-3 border border-1">
+                <div class="col px-2 py-1">
+                    <h6 class="fw-bold">{{ obj.product }}</h6>
+                </div>
+                <div class="col-auto px-2 py-1">
+                    <form class="d-flex" method="post" action="{{ view.request.get_full_path_info }}"
+                          id="rating_form_{{ obj.id }}" data-ajax-url="{% url 'shop:rate_product' %}">
+                        {% csrf_token %}
+                        <div class="input-group p-0 position-relative">
+                            {% include "shop/includes/rating_form.html" %}
+                        </div>
+                        <noscript><button class="btn btn-outline-secondary btn-sm px-1 py-0 ms-1" type="submit">send</button></noscript>
+                    </form>
+                </div>
+                <div class="col-12 px-2">
+                    <div class="row">
+                        <div class="col-auto d-flex flex-column">
+                            <label class="fw-bold mb-1" for="{{ form.review.name }}-{{ obj.id }}">
+                                {{ form.review.label }}:
+                            </label>
+                            <a class="review-toggle small text-decoration-none mb-1"
+                               href="#{{ form.review.name }}-{{ obj.id }}">Edit
+                            </a>
+                            <button class="btn btn-outline-secondary btn-sm px-1 py-0 my-1 d-none"
+                                    type="submit" form="rating_form_{{ obj.id }}">Send</button>
+                        </div>
+                        <div class="col">
+                            <textarea class="form-control-plaintext pt-0 mb-1 position-relative" name="{{ form.review.name }}"
+                                      id="{{ form.review.name }}-{{ obj.id }}" form="rating_form_{{ obj.id }}"
+                                      disabled>{{ obj.review }}</textarea>
+                            <div class="ms-3 bg-danger small rounded position-absolute bottom-100" id="errors_{{ obj.id }}">
+                                <div class="text-white lh-sm small mx-1">{{ form.review.errors|join:" " }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <h6 class="">You don't have product ratings and reviews yet.</h6>
+        {% endfor %}
+        
+        {% if is_paginated %}
+            {% include "shop/includes/pagination.html" %}
+        {% endif %}
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block script %}
+<script>
+let review_toggle_arr = document.querySelectorAll('.review-toggle');
+review_toggle_arr.forEach(function(item, i, arr) {
+    item.addEventListener("click", textareaEditToggle);
+});
+
+function textareaEditToggle() {
+    let sub_button = this.closest('div').querySelector('button[type="submit"]');
+    let el_textarea = document.querySelector(this.getAttribute('href'));
+    console.log('Edit review');
+    this.classList.add("d-none");
+    sub_button.classList.remove("d-none");
+    el_textarea.classList.add("form-control");
+    el_textarea.classList.remove("form-control-plaintext");
+    el_textarea.disabled = false;
+}
+</script>
+<script src="{% static 'shop/script_jquery.js' %}" type="text/javascript"></script>
+{{ block.super }}
+{% endblock script %}
