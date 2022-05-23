@@ -6,10 +6,10 @@
 		"./docker-compose.dev.yml"
 	],
 	"service": "backend",
-	"runServices": ["backend", "db"],
+	"runServices": ["backend", "db", "cache"],
 	"workspaceFolder": "/workspace",
-	"remoteUser": "portfolio",
-	// "remoteUser": "root",
+	"remoteUser": "root",
+	// "remoteUser": "portfolio",
 
 	"extensions": [
 		"ms-python.python",
@@ -20,12 +20,12 @@
 
 	"forwardPorts": [8000, 8001, "web:443"],
 
+	// Use 'postCreateCommand' to run commands after the container is created.
+	 "postCreateCommand": "python --version",
+
 	// Set *default* container specific settings.json values on container create.
 	// "settings": {},
-	
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "",
-	
+
 	// "features": {}
 
 }

@@ -7,15 +7,14 @@ services:
   backend:
     image: portfolio:dev
     build:
-      target: stage
+      target: devcontainer
       args:
         PYTHON_BUILD: ""
-        PROJECT_NAME: "portfolio"
-        PROJECT_DIR: "/workspace"
     environment:
         RACK_ENV: "dev"
         DJANGO_SETTINGS_MODULE: "portfolio.settings.dev"
         GUNICORN_CMD_ARGS: "--bind=0.0.0.0:8001 --reload --access-logfile -"
+        PROJECT_DATA_DIR: "/home/portfolio"
         PGHOST: "localhost"
     env_file:
       - ./conf/example-db.env
