@@ -6,3 +6,4 @@ python-memcached==1.59
 pytz==2021.3
 six==1.16.0
 sqlparse==0.4.2
+requests==2.28.0

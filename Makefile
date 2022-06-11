@@ -13,10 +13,10 @@ export DOMAIN_NAME SSL_EMAIL
 demo: db_check
 	./manage.py testserver --noinput example_shop_data.json
 
-.PHONY: admin collect db demo loaddata migrate runserver setup start test \
+.PHONY: admin collect db demo loaddata migrate run setup start test \
 build pull up prune down logs ps swarm deploy secrets
 
-runserver: dev_check
+run: dev_check
 	./manage.py runserver --nothreading
 
 start: collect

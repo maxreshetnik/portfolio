@@ -36,6 +36,7 @@
         {{ form.message.errors|join:" " }}
     </div>
 </div>
+<div class="lh-sm small text-danger">{{ form.g_recaptcha_response.errors|join:" " }}</div>
 {% endblock feedback_input %}
 
 {% block footer %}

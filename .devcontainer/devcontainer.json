@@ -21,7 +21,7 @@
 	"forwardPorts": [8000, 8001, "web:443"],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	 "postCreateCommand": "python --version",
+	 "postCreateCommand": ["python", "--version"]
 
 	// Set *default* container specific settings.json values on container create.
 	// "settings": {},
