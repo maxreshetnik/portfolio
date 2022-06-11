@@ -135,7 +135,9 @@
                             </div>
                             {% endblock feedback_input %}
                         </div>
-                        <button class="btn w-100 btn-sm btn-outline-dark fs-5 my-5" type="submit">Send</button>
+                        {{ form.g_recaptcha_response }}
+                        <div class="g-recaptcha my-3" data-sitekey="{{ recaptcha_site_key }}"></div>
+                        <button class="btn w-100 btn-sm btn-outline-dark fs-5 mb-5" type="submit">Send</button>
                     </form>
                 </div>
             </div>
@@ -158,6 +160,7 @@
         <!-- Core theme JS-->
         <script src="{% static 'mainapp/scrolling_nav.js' %}"></script>
         <script src="{% static 'mainapp/bootstrap.bundle.min.js' %}"></script>
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
         {% endblock footer %}
     </body>
 </html>

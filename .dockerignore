@@ -2,8 +2,10 @@
 *.sqlite3
 **/.idea
 **/.vscode
+**/.coverage
 **/venv
 **/.git
+**/.github
 **/.gitignore
 **/.gitattributes
 **/.dockerignore

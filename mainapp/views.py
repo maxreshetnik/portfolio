@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.urls import reverse_lazy
 from django.views.generic.edit import FormView
 from django.contrib.messages.views import SuccessMessageMixin
@@ -28,7 +29,12 @@ class HomePageView(SuccessMessageMixin, FormView):
                                       'at this time.')
         else:
             projects = portfolio.projects.all()
-            context.update({'portfolio': portfolio, 'projects': projects})
+            context.update({
+                'portfolio': portfolio, 'projects': projects,
+                'recaptcha_site_key': getattr(
+                    settings, 'RECAPTCHA_SITE_KEY', '',
+                )
+            })
         finally:
             context['messages'] = get_messages(self.request)
         return context

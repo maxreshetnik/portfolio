@@ -7,11 +7,9 @@ services:
   backend:
     build:
       target: stage
-    environment:
-      - PROJECT_SECRETS_FILE=/example-secrets.json
+      args:
+        PYTHON_MINOR_VERSION: ${PYTHON_MINOR_VERSION:-3.9}
     restart: always
-    volumes:
-      - ./conf/example-secrets.json:/example-secrets.json:ro
 
   db:
     restart: always

@@ -193,3 +193,8 @@ MEDIA_ROOT = str(DATA_DIR.joinpath('media'))
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
+
+# RECAPTCHA KEYS
+if 'recaptcha_secret_key' in SECRETS:
+    RECAPTCHA_SITE_KEY = SECRETS.get('recaptcha_site_key')
+    RECAPTCHA_SECRET_KEY = SECRETS.get('recaptcha_secret_key')
